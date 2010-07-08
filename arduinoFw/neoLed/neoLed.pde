@@ -15,6 +15,7 @@ static void sendSerialResponse(byte command, byte param) {
   Serial.write(OK);
   Serial.write(command);
   Serial.write(param);
+  Serial.write(Serial.available())
 }
 
 void heartbeat() {
@@ -31,13 +32,14 @@ void setup()
   
   for (byte b=0; b<128; b++)
     serInStr[b]=164;
-    
-  //clear both rainbowduinos - 
-  //hint init will fail if both rainbowduinos are not available!
-  BlinkM_sendCmd(0x06, serInStr, 96);
-  BlinkM_sendCmd(0x05, serInStr, 96);
   
   errorCounter=0;
+  
+  //clear both rainbowduinos - 
+  //hint init will fail if both rainbowduinos are not available!
+  errorCounter+=BlinkM_sendCmd(0x06, serInStr, 96);
+  errorCounter+=BlinkM_sendCmd(0x05, serInStr, 96);
+  
   pinMode(13, OUTPUT);
   
   //im your slave and wait for your commands, master!
@@ -74,7 +76,7 @@ void loop()
     } else {
       // digitalWrite(ledPin,LOW);
        //else its a frame
-       BlinkM_sendCmd(addr, cmd, sendlen);
+       errorCounter += BlinkM_sendCmd(addr, cmd, sendlen);
     }    
   
 }
