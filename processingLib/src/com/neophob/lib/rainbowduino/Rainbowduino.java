@@ -47,13 +47,14 @@ public class Rainbowduino implements Runnable {
 
 	private PApplet app;
 
-	private int baud = 115200;
+	private int baud = 57600;//115200;
 	private Serial port;
 
 	private Thread runner;
 	private long arduinoHeartbeat;
-	private long arduinoHeartbeatErrorCnt;
-
+	private int arduinoBufferSize;
+	private int arduinoErrorCounter;
+	
 	/**
 	 * Create a new instance to communicate with the rainbowduino. Make sure to (auto)init the serial port, too 
 	 * 
@@ -82,14 +83,13 @@ public class Rainbowduino implements Runnable {
 			} catch (InterruptedException e) {
 			}
 
-			if (connected() && port.available() > 2) {
+			if (connected() && port.available() > 3) {
 				byte[] msg = port.readBytes();
-				if (msg!=null && msg.length>2) {
-					if (msg[0]==START_OF_CMD && msg[1]==CMD_HEARTBEAT) {
-						if (msg[2]==0) {
-							arduinoHeartbeat = System.currentTimeMillis();
-							arduinoHeartbeatErrorCnt += msg[2];
-						}
+				if (msg!=null && msg.length>3) {
+					if (msg[0]==START_OF_CMD && msg[1]==CMD_HEARTBEAT) {		
+						arduinoHeartbeat = System.currentTimeMillis();
+						arduinoErrorCounter = (int)(msg[2]&255);
+						arduinoBufferSize = (int)msg[3];	
 					}					
 				}
 			}
@@ -180,7 +180,7 @@ public class Rainbowduino implements Runnable {
 	 * @return wheter ping was successfull
 	 * 
 	 */
-	public boolean ping(byte addr) {		
+	public synchronized boolean ping(byte addr) {		
 		/*
 		 *  0   <startbyte>
 		 *  1   <i2c_addr>
@@ -196,7 +196,7 @@ public class Rainbowduino implements Runnable {
 		cmdfull[4] = 0x02;
 		port.write(cmdfull);
 
-		int timeout=15; //wait up to 1.5s
+		int timeout=25; //wait up to 2.5s
 		while( timeout > 0 && port.available() < 2) {
 			//print(".");
 			sleep(100); //in ms
@@ -236,7 +236,6 @@ public class Rainbowduino implements Runnable {
 	 * @param check wheter to perform sensity check
 	 */
 	public synchronized void sendFrame(byte addr, byte data[], boolean check) {
-		//try {
 		byte cmdfull[] = new byte[4+data.length];
 		cmdfull[0] = START_OF_CMD;
 		cmdfull[1] = addr;
@@ -246,23 +245,15 @@ public class Rainbowduino implements Runnable {
 			cmdfull[4+i] = data[i];
 		}
 		port.write(cmdfull);
-
-		/*			if(check) {
-				int accepted_size = -1;//receive(SEND_FRAME);				
-				if(data.length != accepted_size) {
-					System.out.println("accepted_size: "+accepted_size);
-					throw new RainbowduinoError(ERROR_MISSMATCH);
-				}
-			}
-		} catch (RainbowduinoError e) {			
-			e.print();
-		}*/
 	}
 
 
+	public int getArduinoErrorCounter() {
+		return arduinoErrorCounter;
+	}
 
-	public long getArduinoHeartbeatErrorCnt() {
-		return arduinoHeartbeatErrorCnt;
+	public int getArduinoBufferSize() {
+		return arduinoBufferSize;
 	}
 
 	public long getArduinoHeartbeat() {
