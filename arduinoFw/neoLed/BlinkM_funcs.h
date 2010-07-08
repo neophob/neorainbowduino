@@ -17,13 +17,13 @@
 #define processing 0x20
 #define checking  0x30
 
-static int BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {  
+static byte BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {  
     unsigned char sendIsDone=0;
     unsigned char cmdsession=0;
     unsigned char state = transcmd;
     unsigned char slavestate = waitingcmd;
     unsigned int timeout = 0;
-    int ret=0;
+    byte ret=0;
     
     do { //cycle until slave transmits it's done
       
@@ -34,13 +34,13 @@ static int BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {
           if (cmdsession==0) {
             Wire.send('F');
           } else if (cmdsession > 0 && cmdsession < 4) { 
-            byte ofs = (cmdsession-1)*32;
-            for( byte i=ofs; i<ofs+32; i++) 
-              Wire.send(cmd[i]);
+            byte ofs = (cmdsession-1)<<5;            
+            Wire.send(cmd+ofs, 32);
           }
           
           Wire.endTransmission();
-          delayMicroseconds(230);
+          //give the rainbowduino some time to process (230)
+          delayMicroseconds(250);
           state=checkslavestate;
           break;
         
@@ -61,11 +61,11 @@ static int BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {
           else 
             state=transcmd;
     
-          if (timeout>2000) { //time out occurs
+          if (timeout>500) { //time out occurs
             timeout=0;  //reset timout
             state=transcmd;  //trans failure, resend
             sendIsDone=1;
-            ret=addr; // return error
+            ret=1; // return error
           }
           //delayMicroseconds(10);
           break;
