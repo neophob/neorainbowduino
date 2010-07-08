@@ -17,13 +17,15 @@
 #define processing 0x20
 #define checking  0x30
 
+#define F 0x46
+
 static byte BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {  
-    unsigned char sendIsDone=0;
-    unsigned char cmdsession=0;
-    unsigned char state = transcmd;
-    unsigned char slavestate = waitingcmd;
-    unsigned int timeout = 0;
-    byte ret=0;
+    byte sendIsDone = 0;
+    byte cmdsession = 0;
+    byte state = transcmd;
+    byte slavestate = waitingcmd;
+    byte timeout = 0;
+    byte ret = 0;
     
     do { //cycle until slave transmits it's done
       
@@ -32,7 +34,7 @@ static byte BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {
           Wire.beginTransmission(addr);
     
           if (cmdsession==0) {
-            Wire.send('F');
+            Wire.send(F);
           } else if (cmdsession > 0 && cmdsession < 4) { 
             byte ofs = (cmdsession-1)<<5;            
             Wire.send(cmd+ofs, 32);
@@ -67,19 +69,15 @@ static byte BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {
             sendIsDone=1;
             ret=1; // return error
           }
-          //delayMicroseconds(10);
           break;
     
         case slavedone:  //trans done
           sendIsDone=1;  //trans confirmed and OK, will exit while loop
-          //state=transcmd;  //reset state for next call of cmd
-          //TODO not sure here about the state!
           break;
     
         default:
           state=transcmd;
           break;
-        
       } 
     
   } while(!sendIsDone);
