@@ -80,7 +80,7 @@ void loop()
   } 
   else {
     //else its a frame
-    errorCounter = BlinkM_sendCmd(addr, cmd, sendlen);
+    errorCounter += BlinkM_sendCmd(addr, cmd, sendlen);
   }    
 
 }
