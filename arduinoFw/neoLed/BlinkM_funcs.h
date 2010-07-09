@@ -19,12 +19,12 @@
 
 #define F 0x46
 
-static byte BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {  
+static byte BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {
+	unsigned int timeout = 0;  
     byte sendIsDone = 0;
     byte cmdsession = 0;
     byte state = transcmd;
-    byte slavestate = waitingcmd;
-    byte timeout = 0;
+    byte slavestate = waitingcmd;    
     byte ret = 0;
     
     do { //cycle until slave transmits it's done
