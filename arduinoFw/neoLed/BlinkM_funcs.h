@@ -19,7 +19,7 @@
 
 #define F 0x46
 
-static byte BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {
+static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
 	unsigned int timeout = 0;  
     byte sendIsDone = 0;
     byte cmdsession = 0;
@@ -35,8 +35,10 @@ static byte BlinkM_sendCmd(byte addr, byte* cmd, int cmdlen) {
     
           if (cmdsession==0) {
             Wire.send(F);
-          } else if (cmdsession > 0 && cmdsession < 4) { 
-            byte ofs = (cmdsession-1)<<5;            
+          } else if (cmdsession > 0 && cmdsession < 4) {
+          	//<<5 equals *32
+            byte ofs = (cmdsession-1)<<5;
+            //transmit one color array(r/g/b)
             Wire.send(cmd+ofs, 32);
           }
           

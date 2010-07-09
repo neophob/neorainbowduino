@@ -1,3 +1,6 @@
+//arduino serial-i2c-gateway, by michael vogt / neophob.com 2010
+//published as i-dont-give-a-shit-about-any-license 
+//you need the MsTime2 library, check http://www.arduino.cc/playground/Main/MsTimer2
 #include <MsTimer2.h>
 #include "Wire.h"
 #include "BlinkM_funcs.h"
@@ -46,8 +49,8 @@ void setup() {
 
   //clear both rainbowduinos - 
   //hint init will fail if both rainbowduinos are not available!
-  errorCounter+=BlinkM_sendCmd(0x06, serInStr, 96);
-  errorCounter+=BlinkM_sendCmd(0x05, serInStr, 96);
+  errorCounter+=BlinkM_sendBuffer(0x06, serInStr);
+  errorCounter+=BlinkM_sendBuffer(0x05, serInStr);
 
   pinMode(13, OUTPUT);
 
@@ -62,14 +65,9 @@ void setup() {
 
 void loop()
 {
-  int num;
-
   //read the serial port and create a string out of what you read
-  num = readCommand(serInStr);
-  if( num == 0 )   // see if we got a proper command string yet
+  if( readCommand(serInStr) == 0 )   // see if we got a proper command string yet
     return;
-
-  //digitalWrite(ledPin,HIGH);  // say we're working on it
 
   //i2c addres of device
   byte addr    = serInStr[1];
@@ -85,8 +83,9 @@ void loop()
     sendSerialResponse(CMD_PING, 0); 
   } 
   else {
-    //else its a frame
-    errorCounter += BlinkM_sendCmd(addr, cmd, sendlen);
+    //else its a frame, a frame need 96 bytes
+    if (sendlen!=96) return;
+    errorCounter += BlinkM_sendBuffer(addr, cmd);
   }    
 
 }
@@ -98,7 +97,7 @@ void loop()
 /* example ping command:
 		cmdfull[0] = START_OF_CMD (marker);
 		cmdfull[1] = addr; //unused yet!
-		cmdfull[2] = 0x01;
+		cmdfull[2] = 0x01; 
 		cmdfull[3] = CMD_PING;
 		cmdfull[4] = START_OF_DATA (marker);
 		cmdfull[5] = 0x02;
@@ -126,9 +125,12 @@ uint8_t readCommand(byte *str)
 
   uint8_t sendlen = str[2];
   if( sendlen == 0 ) return 0;
-  uint8_t dataStartMarker = str[4];		//check if data is correct
-  if( dataStartMarker != START_OF_DATA ) return 0;
   
+  //check if data is correct, 0x10 = START_OF_DATA
+  uint8_t dataStartMarker = str[4];
+  if( dataStartMarker != 0x10 ) return 0;
+  
+  //TODO maybe slip next part up
   i = SERIAL_WAIT_TIME_IN_MS;
   while( Serial.available() < sendlen ) {  // wait for the final part
     delay(1); 
@@ -137,11 +139,12 @@ uint8_t readCommand(byte *str)
   for( i=HEADER_SIZE; i<6+sendlen; i++ ) 
     str[i] = Serial.read();       // fill it up
 
-  uint8_t dataEndMarker = str[HEADER_SIZE+sendlen];		//check if data is correct
-  if( dataEndMarker != END_OF_DATA ) return 0;
+  //check if data is correct, 0x20 = END_OF_DATA
+  uint8_t dataEndMarker = str[HEADER_SIZE+sendlen];
+  if( dataEndMarker != 0x20 ) return 0;
   
-  //5 bytes header, we do not add the trailing check byte
-  return HEADER_SIZE+sendlen;
+  //return data size (without meta data)
+  return sendlen;
 }
 
 
