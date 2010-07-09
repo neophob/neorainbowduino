@@ -111,38 +111,54 @@ uint8_t readCommand(byte *str)
     return 0;  // wait for serial
 
   b = Serial.read();
-  if( b != CMD_START_BYTE )         // check to see we're at the start
+  if( b != CMD_START_BYTE ) {        // check to see we're at the start
+    errorCounter++;
     return 0;
+  }
 
   str[0] = b;
   i = SERIAL_WAIT_TIME_IN_MS;
   while( Serial.available() < 4 ) {   // wait for the rest
     delay(1); 
-    if( i-- == 0 ) return 0;        // get out if takes too long
+    if( i-- == 0 ) {
+      errorCounter++;
+      return 0;        // get out if takes too long
+    }
   }
   for( i=1; i<HEADER_SIZE; i++)
     str[i] = Serial.read();       // fill it up
 
   uint8_t sendlen = str[2];
-  if( sendlen == 0 ) return 0;
+  if( sendlen == 0 ) {
+    errorCounter++;
+    return 0;
+  }
   
   //check if data is correct, 0x10 = START_OF_DATA
   uint8_t dataStartMarker = str[4];
-  if( dataStartMarker != 0x10 ) return 0;
+  if( dataStartMarker != 0x10 ) {
+    errorCounter++;
+    return 0;
+  }
   
   //TODO maybe slip next part up
   i = SERIAL_WAIT_TIME_IN_MS;
   while( Serial.available() < sendlen ) {  // wait for the final part
     delay(1); 
-    if( i-- == 0 ) return 0;
+    if( i-- == 0 ) {
+      errorCounter++;
+      return 0;
+    }
   }
   for( i=HEADER_SIZE; i<6+sendlen; i++ ) 
     str[i] = Serial.read();       // fill it up
 
   //check if data is correct, 0x20 = END_OF_DATA
   uint8_t dataEndMarker = str[HEADER_SIZE+sendlen];
-  if( dataEndMarker != 0x20 ) return 0;
-  
+  if( dataEndMarker != 0x20 ) {
+    errorCounter++;
+    return 0;
+  }
   //return data size (without meta data)
   return sendlen;
 }
