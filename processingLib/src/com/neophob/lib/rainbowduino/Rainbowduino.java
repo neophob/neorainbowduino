@@ -44,7 +44,9 @@ public class Rainbowduino implements Runnable {
 	private static final byte CMD_PING = 0x04;
 	private static final byte CMD_SENDFRAME = 0x03;
 	private static final byte CMD_HEARTBEAT = 0x10;
-
+	private static final byte START_OF_DATA = 0x10;
+	private static final byte END_OF_DATA = 0x20;
+	
 	private PApplet app;
 
 	private int baud = 57600;//115200;
@@ -185,20 +187,23 @@ public class Rainbowduino implements Runnable {
 		 *  0   <startbyte>
 		 *  1   <i2c_addr>
 		 *  2   <num_bytes_to_send>
-		 *  3   <num_bytes_to_receive>
-		 *  4   <send_byte0>
+		 *  3   command type, was <num_bytes_to_receive>
+		 *  4   data marker
+		 *  5   ... data
+		 *  n   end of data
 		 */
-		byte cmdfull[] = new byte[5];
+		byte cmdfull[] = new byte[7];
 		cmdfull[0] = START_OF_CMD;
 		cmdfull[1] = addr; //unused yet!
 		cmdfull[2] = 0x01;
 		cmdfull[3] = CMD_PING;
-		cmdfull[4] = 0x02;
+		cmdfull[4] = START_OF_DATA;
+		cmdfull[5] = 0x02;
+		cmdfull[6] = END_OF_DATA;
 		port.write(cmdfull);
 
 		int timeout=25; //wait up to 2.5s
 		while( timeout > 0 && port.available() < 2) {
-			//print(".");
 			sleep(100); //in ms
 			timeout--;
 		}
@@ -236,14 +241,16 @@ public class Rainbowduino implements Runnable {
 	 * @param check wheter to perform sensity check
 	 */
 	public synchronized void sendFrame(byte addr, byte data[], boolean check) {
-		byte cmdfull[] = new byte[4+data.length];
+		byte cmdfull[] = new byte[6+data.length];
 		cmdfull[0] = START_OF_CMD;
 		cmdfull[1] = addr;
 		cmdfull[2] = (byte)data.length;
 		cmdfull[3] = CMD_SENDFRAME;
-		for( int i=0; i<data.length; i++) {
-			cmdfull[4+i] = data[i];
+		cmdfull[4] = START_OF_DATA;		
+		for (int i=0; i<data.length; i++) {
+			cmdfull[5+i] = data[i];
 		}
+		cmdfull[data.length+5] = END_OF_DATA;
 		port.write(cmdfull);
 	}
 

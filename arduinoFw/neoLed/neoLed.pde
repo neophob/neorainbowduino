@@ -4,9 +4,15 @@
 
 #define BAUD_RATE 57600
 //115200
+
+//some magic numberes
 #define CMD_START_BYTE  0x01
 #define CMD_PING  0x04
 #define CMD_HEARTBEAT 0x10
+#define START_OF_DATA 0x10;
+#define END_OF_DATA 0x20;
+
+#define SERIAL_WAIT_TIME_IN_MS 20
 
 //this should match RX_BUFFER_SIZE from HardwareSerial.cpp
 byte serInStr[128];  // array that will hold the serial input string
@@ -72,7 +78,7 @@ void loop()
   //what kind of command we send
   byte type = serInStr[3];
   //parameter
-  byte* cmd    = serInStr+4;
+  byte* cmd    = serInStr+5;
 
   if (type == CMD_PING) {
     //simple ardiumo ping
@@ -89,6 +95,16 @@ void loop()
 //read a string from the serial and store it in an array
 //you must supply the str array variable
 //returns number of bytes read, or zero if fail
+/* example ping command:
+		cmdfull[0] = START_OF_CMD (marker);
+		cmdfull[1] = addr; //unused yet!
+		cmdfull[2] = 0x01;
+		cmdfull[3] = CMD_PING;
+		cmdfull[4] = START_OF_DATA (marker);
+		cmdfull[5] = 0x02;
+		cmdfull[6] = END_OF_DATA (marker);
+*/
+#define HEADER_SIZE 5
 uint8_t readCommand(byte *str)
 {
   uint8_t b,i;
@@ -98,40 +114,34 @@ uint8_t readCommand(byte *str)
   b = Serial.read();
   if( b != CMD_START_BYTE )         // check to see we're at the start
     return 0;
-#ifdef DEBUG
-  Serial.println("startbyte");
-#endif
 
   str[0] = b;
-  i = 100;
-  while( Serial.available() < 3 ) {   // wait for the rest
+  i = SERIAL_WAIT_TIME_IN_MS;
+  while( Serial.available() < 4 ) {   // wait for the rest
     delay(1); 
     if( i-- == 0 ) return 0;        // get out if takes too long
   }
-  for( i=1; i<4; i++)
+  for( i=1; i<HEADER_SIZE; i++)
     str[i] = Serial.read();       // fill it up
-#ifdef DEBUG
-  Serial.println("header");
-#endif
 
   uint8_t sendlen = str[2];
-#ifdef DEBUG
-  Serial.print("cmdlen:");  
-  Serial.println( sendlen, DEC);
-#endif
   if( sendlen == 0 ) return 0;
-  i = 100;
+  uint8_t dataStartMarker = str[4];		//check if data is correct
+  if( dataStartMarker != START_OF_DATA ) return 0;
+  
+  i = SERIAL_WAIT_TIME_IN_MS;
   while( Serial.available() < sendlen ) {  // wait for the final part
     delay(1); 
     if( i-- == 0 ) return 0;
   }
-  for( i=4; i<4+sendlen; i++ ) 
+  for( i=HEADER_SIZE; i<6+sendlen; i++ ) 
     str[i] = Serial.read();       // fill it up
 
-#ifdef DEBUG
-  Serial.println("got all");
-#endif
-  return 4+sendlen;
+  uint8_t dataEndMarker = str[HEADER_SIZE+sendlen];		//check if data is correct
+  if( dataEndMarker != END_OF_DATA ) return 0;
+  
+  //5 bytes header, we do not add the trailing check byte
+  return HEADER_SIZE+sendlen;
 }
 
 
