@@ -1,7 +1,11 @@
 #include <avr/pgmspace.h>
 
-unsigned char GamaTab[16]=  //I've never touched this, but it's used in the interrupts
-{0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7};
+//I still didn't figured out what the gamma tab exactly do, but the progressive gamme 
+//looks more saturated the the default gamma
+unsigned char GamaTab[16]=
+//{0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7,0xE7};  // Default Gamme
+{0xFF,0xFE,0xFD,0xFC,0xFB,0xF9,0xF7,0xF5,0xF3,0xF0,0xED,0xEA,0xE7,0xE4,0xE1,0xDD};  // Progressive gamma
+
 //=====================================================
 unsigned char RainbowCMD[4][32]={  //the glorious command array
   {0,0,0,0,0,0,0,0,
@@ -26,6 +30,7 @@ unsigned char RainbowCMD[4][32]={  //the glorious command array
   };
 
 //========================================================
+//TODO: verify if this buffer needs to be such big!
 unsigned char buffer[3][3][8][4] = //this needs to be more than two for the first index, don't ask me why but it doesn't work otherwise
 {
  {
