@@ -46,8 +46,7 @@ void heartbeat() {
 int send_initial_image(byte i2caddr) {
   
   //clear whole buffer
-  for (byte b=0; b<128; b++)
-    serInStr[b]=CLEARCOL;
+  memset(serInStr, CLEARCOL, 128);
 
   //draw i2c addr as led pixels
   float tail = (i2caddr*3)/2.0f;
@@ -73,10 +72,9 @@ int send_initial_image(byte i2caddr) {
 }
 
 void setup() {
-  Wire.begin(); // join i2c bus (address optional for master)
-
   errorCounter=0;
 
+  Wire.begin(); // join i2c bus (address optional for master)
   //clear both rainbowduinos - 
   //hint init will fail if both rainbowduinos are not available!
   errorCounter+=send_initial_image(0x06);
