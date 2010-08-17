@@ -32,6 +32,8 @@ static void sendSerialResponse(byte command, byte param) {
   Serial.write(send, 4);
 }
 
+//send heartbeat command to host and reset the error counter
+//save the error counter on the host side!
 void heartbeat() {
   digitalWrite(13, HIGH);
   sendSerialResponse(CMD_HEARTBEAT, errorCounter);
@@ -51,6 +53,10 @@ int send_initial_image(byte i2caddr) {
   float tail = (i2caddr*3)/2.0f;
   boolean useTail = (tail-(int)(tail))!=0;			
     			
+  //red pixel buffer example for i2c addr 0x03:
+  //11110000 00001111 00000000 11110000 0000----  
+  //240      15	      0        240      &15 (clear 4 highbits)
+
   int ofs=0;
   for (int i=0; i<i2caddr/2; i++) {
     //Write 2 pixels // 24bits // 3bytes
@@ -82,8 +88,8 @@ void setup() {
   Serial.begin(BAUD_RATE); //Setup high speed Serial
   Serial.flush();
 
-  //do not send serial data too often - it
-  MsTimer2::set(3000, heartbeat); // 1000ms period
+  //do not send serial data too often
+  MsTimer2::set(3000, heartbeat); // 3000ms period
   MsTimer2::start();
 }
 
