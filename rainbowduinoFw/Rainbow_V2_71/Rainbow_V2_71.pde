@@ -3,8 +3,6 @@
 
 #define I2C_WAIT_TIME_IN_MS 10
 
-//extern unsigned char buffer[2][3][8][4]; //define Two Buffs (one for Display ,the other for receive data)
-//extern unsigned char RainbowCMD[4][32];  //the glorious command structure array
 extern unsigned char GamaTab[16];        //define the Gamma value for correct the different LED matrix
 
 unsigned char RainbowCMD[4][32];  //the glorious command structure array
@@ -14,7 +12,6 @@ unsigned char buffprt=0;  //define variable that keeps track of which buffer is 
 unsigned char State=0;  //the state of the Rainbowduino, used to figure out what to do next
 unsigned char g8Flag1;  //flag for onrequest from IIC to if master has asked
 unsigned char cmdsession=0;  //the number of the cmdsession that last took place, total number that has occured, first is 1 not 0
-byte bufFront, bufBack, bufCurr;                // used for handling the buffers
 
 
 void setup() {
@@ -66,8 +63,7 @@ void loop() {
 
 //============INTERRUPTS======================================
 
-ISR(TIMER2_OVF_vect)          //Timer2  Service 
-{ 
+ISR(TIMER2_OVF_vect) {         //Timer2  Service 
   TCNT2 = GamaTab[level];    // Reset a  scanning time by gamma value table
   flash_next_line(line,level);  // scan the next line in LED matrix level by level.
   line++;
@@ -81,8 +77,7 @@ ISR(TIMER2_OVF_vect)          //Timer2  Service
   }
 }
 
-void init_timer2(void)               
-{
+void init_timer2(void) {
   TCCR2A |= (1 << WGM21) | (1 << WGM20);   
   TCCR2B |= (1<<CS22);   // by clk/64
   TCCR2B &= ~((1<<CS21) | (1<<CS20));   // by clk/64
@@ -97,8 +92,7 @@ void init_timer2(void)
 //=============HANDLERS======================================
 
 //get data from master
-void receiveEvent(int howMany)
-{
+void receiveEvent(int howMany) {
   if (cmdsession>4) {
     //oops!
     cmdsession=0;
@@ -136,8 +130,7 @@ void receiveEvent(int howMany)
 }
 
 
-void requestEvent(void)  //when the master requests from the slave, this is the handler
-{
+void requestEvent(void) { //when the master requests from the slave, this is the handler
   unsigned char trans;  //what is to be transmitted
 
   if (State==morecmd) {
@@ -166,7 +159,7 @@ void processWireCommand(void) {
 }
 //==============DISPSHOW========================================
 void DispshowFrame(void) {
-  unsigned char color, row, dots, correctcol, targetbuf;
+  unsigned char color, row, dots, correctcol, targetbuf, ofs;
   targetbuf=(buffprt+1)&1;
 
   for(color=0;color<4;color++) {
@@ -182,7 +175,8 @@ void DispshowFrame(void) {
       correctcol = 3; //out blue
       break;
     }
-    byte ofs=0;
+    
+    ofs=0;
     for (row=0; row<8; row++) {
       for (dots=0; dots<4; dots++) {
         buffer[targetbuf][color][row][dots] = RainbowCMD[correctcol][ofs++];  //get byte info for two dots directly from command
@@ -194,8 +188,7 @@ void DispshowFrame(void) {
 }
 
 //==============================================================
-void shift_1_bit(unsigned char LS)  //shift 1 bit of  1 Byte color data into Shift register by clock
-{
+void shift_1_bit(unsigned char LS) { //shift 1 bit of  1 Byte color data into Shift register by clock
   if(LS)
   {
     shift_data_1;
@@ -207,7 +200,7 @@ void shift_1_bit(unsigned char LS)  //shift 1 bit of  1 Byte color data into Shi
   clk_rising;
 }
 //==============================================================
-void flash_next_line(unsigned char line,unsigned char level) // scan one line
+void flash_next_line(unsigned char line, unsigned char level) // scan one line
 {
   disable_oe;
   close_all_line;
@@ -225,8 +218,7 @@ void flash_next_line(unsigned char line,unsigned char level) // scan one line
 }
 
 //==============================================================
-void shift_24_bit(unsigned char line,unsigned char level)   // display one line by the color level in buff
-{
+void shift_24_bit(unsigned char line, unsigned char level) {  // display one line by the color level in buff
   unsigned char color=0,row=0;
   unsigned char data0=0,data1=0;
   le_high;
@@ -262,10 +254,8 @@ void shift_24_bit(unsigned char line,unsigned char level)   // display one line 
 
 
 //==============================================================
-void open_line(unsigned char line)     // open the scaning line 
-{
-  switch(line)
-  {
+void open_line(unsigned char line) {    // open the scaning line 
+  switch(line) {
   case 0:
     {
       open_line0;
