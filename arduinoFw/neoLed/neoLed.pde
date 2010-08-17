@@ -8,6 +8,8 @@
 #define BAUD_RATE 57600
 //115200
 
+#define CLEARCOL 164
+
 //some magic numberes
 #define CMD_START_BYTE  0x01
 #define CMD_PING  0x04
@@ -37,20 +39,42 @@ void heartbeat() {
   digitalWrite(13, LOW);
 }
 
+//send an white image to the target rainbowduino
+//contains red led's which describe its i2c addr
+int send_initial_image(byte i2caddr) {
+  
+  //clear whole buffer
+  for (byte b=0; b<128; b++)
+    serInStr[b]=CLEARCOL;
+
+  //draw i2c addr as led pixels
+  float tail = (i2caddr*3)/2.0f;
+  boolean useTail = (tail-(int)(tail))!=0;			
+    			
+  int ofs=0;
+  for (int i=0; i<i2caddr/2; i++) {
+    //Write 2 pixels // 24bits // 3bytes
+    serInStr[ofs++]=240;
+    serInStr[ofs++]=15;
+    serInStr[ofs++]=0;
+  }
+  if (useTail) {
+    serInStr[ofs++]=240;
+    serInStr[ofs++]=CLEARCOL&15;
+  }
+  
+  return BlinkM_sendBuffer(i2caddr, serInStr);
+}
+
 void setup() {
   Wire.begin(); // join i2c bus (address optional for master)
-
-  //TODO initial image
-
-  for (byte b=0; b<128; b++)
-    serInStr[b]=164;
 
   errorCounter=0;
 
   //clear both rainbowduinos - 
   //hint init will fail if both rainbowduinos are not available!
-  errorCounter+=BlinkM_sendBuffer(0x06, serInStr);
-  errorCounter+=BlinkM_sendBuffer(0x05, serInStr);
+  errorCounter+=send_initial_image(0x06);
+  errorCounter+=send_initial_image(0x05);
 
   pinMode(13, OUTPUT);
 
@@ -84,7 +108,10 @@ void loop()
   } 
   else {
     //else its a frame, a frame need 96 bytes
-    if (sendlen!=96) return;
+    if (sendlen!=96) {
+      errorCounter++;
+      return;
+    }
     errorCounter += BlinkM_sendBuffer(addr, cmd);
   }    
 
