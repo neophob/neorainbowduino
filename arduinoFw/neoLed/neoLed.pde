@@ -8,7 +8,7 @@
 #define BAUD_RATE 57600
 //115200
 
-#define CLEARCOL 164
+#define CLEARCOL 51 //00110011
 
 //some magic numberes
 #define CMD_START_BYTE  0x01
@@ -49,23 +49,18 @@ int send_initial_image(byte i2caddr) {
   memset(serInStr, CLEARCOL, 128);
 
   //draw i2c addr as led pixels
-  float tail = (i2caddr*3)/2.0f;
+  float tail = i2caddr/2.0f;
+  int tail2 = (int)(tail);
   boolean useTail = (tail-(int)(tail))!=0;			
-    			
-  //red pixel buffer example for i2c addr 0x03:
-  //11110000 00001111 00000000 11110000 0000----  
-  //240      15	      0        240      &15 (clear 4 highbits)
 
+  //buffer: 32b RED, 32b GREEN, 32b BLUE
   int ofs=0;
-  for (int i=0; i<i2caddr/2; i++) {
+  for (int i=0; i<tail2; i++) {
     //Write 2 pixels // 24bits // 3bytes
-    serInStr[ofs++]=240;
-    serInStr[ofs++]=15;
-    serInStr[ofs++]=0;
+    serInStr[ofs++]=255;
   }
   if (useTail) {
-    serInStr[ofs++]=240;
-    serInStr[ofs++]=CLEARCOL&15;
+    serInStr[ofs++]=243;
   }
   
   return BlinkM_sendBuffer(i2caddr, serInStr);
