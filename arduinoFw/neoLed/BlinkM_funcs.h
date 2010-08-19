@@ -20,7 +20,7 @@
 #define F 0x46
 
 static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
-	unsigned int timeout = 0;  
+    unsigned int timeout = 0;  
     byte sendIsDone = 0;
     byte cmdsession = 0;
     byte state = transcmd;
@@ -82,7 +82,7 @@ static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
           break;
       } 
     
-  } while(!sendIsDone);
+  } while (!sendIsDone);
   return ret;
 }
 
