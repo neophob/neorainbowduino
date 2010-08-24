@@ -16,6 +16,8 @@
 #define SH_BIT_CLK   0x02
 #define SH_BIT_LE    0x04
 
+//PORTC maps to Arduino analog pins 0 to 5. Pins 6 & 7 are only accessible on the Arduino Mini
+//PORTC - The Port C Data Register - read/write
 #define SH_PORT_OE   PORTC
 #define SH_PORT_SDI  PORTC
 #define SH_PORT_CLK  PORTC
