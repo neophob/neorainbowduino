@@ -66,13 +66,7 @@ int send_initial_image(byte i2caddr) {
 }
 
 void setup() {
-  errorCounter=0;
-
   Wire.begin(); // join i2c bus (address optional for master)
-  //clear both rainbowduinos - 
-  //hint init will fail if both rainbowduinos are not available!
-  errorCounter+=send_initial_image(0x06);
-  errorCounter+=send_initial_image(0x05);
 
   pinMode(13, OUTPUT);
 
@@ -80,15 +74,30 @@ void setup() {
   Serial.begin(BAUD_RATE); //Setup high speed Serial
   Serial.flush();
 
+  errorCounter=0;
+  //clear both rainbowduinos - 
+  //hint init will fail if both rainbowduinos are not available!
+//  errorCounter+=send_initial_image(0x05);
+  errorCounter+=send_initial_image(0x06);
+/*  int tmp=send_initial_image(0x06);
+  if (tmp>0) errorCounter=0x06;
+
+  tmp=send_initial_image(0x05);
+  if (tmp>0) errorCounter+=0x05;
+  
+  heartbeat();
+  errorCounter=0;
+*/
   //do not send serial data too often
-  MsTimer2::set(3000, heartbeat); // 3000ms period
+  MsTimer2::set(1000, heartbeat); // 3000ms period
   MsTimer2::start();
 }
 
 void loop()
 {
   //read the serial port and create a string out of what you read
-  
+    errorCounter=0;
+
   // see if we got a proper command string yet
   if (readCommand(serInStr) == 0) {
     delay(10); 
@@ -111,10 +120,12 @@ void loop()
   else {
     //else its a frame, a frame need 96 bytes
     if (sendlen!=96) {
-      errorCounter++;
+//      errorCounter++;
+        errorCounter=999;
       return;
     }
-    errorCounter += BlinkM_sendBuffer(addr, cmd);
+//    errorCounter += BlinkM_sendBuffer(addr, cmd);
+    errorCounter = BlinkM_sendBuffer(addr, cmd);
   }    
 
 }

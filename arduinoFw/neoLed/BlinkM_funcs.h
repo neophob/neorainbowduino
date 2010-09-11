@@ -9,7 +9,7 @@
 #define API_VER     3 //returns OK + Version number
 #define API_VERSION_NR 1
 
-#define transcmd 0xA0
+/*#define transcmd 0xA0
 #define checkslavestate 0xB0
 #define slavedone 0xC0
 #define waitingcmd 0x00
@@ -17,9 +17,14 @@
 #define processing 0x20
 #define checking  0x30
 
-#define F 0x46
+#define F 0x46*/
 
 static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
+    Wire.beginTransmission(addr);
+    Wire.send(cmd, 96);
+    return Wire.endTransmission();
+
+/*    
     unsigned int timeout = 0;  
     byte sendIsDone = 0;
     byte cmdsession = 0;
@@ -83,7 +88,7 @@ static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
       } 
     
   } while (!sendIsDone);
-  return ret;
+  return ret;*/
 }
 
 
