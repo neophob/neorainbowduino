@@ -5,6 +5,7 @@ needed libraries:
 libraries to patch:
  Wire: 
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
+ 				   #define TWI_BUFFER_LENGTH 96 (was 32)
  	wire.h: #define BUFFER_LENGTH 96 (was 32)
  	
 
