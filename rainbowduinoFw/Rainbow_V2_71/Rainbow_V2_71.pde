@@ -2,17 +2,18 @@
 #include <FlexiTimer2.h>
 #include "Rainbow.h"
 
-extern unsigned char GamaTab[16];             //define the Gamma value for correct the different LED matrix
+//extern unsigned char GamaTab[16];             //define the Gamma value for correct the different LED matrix
 extern unsigned char buffer[2][3][8][4];  //define Two Buffs (one for Display ,the other for receive data)
 extern unsigned char RainbowCMD[4][32];  //the glorious command structure array
 
 unsigned char line,level;
-//unsigned char State=0;  //the state of the Rainbowduino, used to figure out what to do next
 unsigned char g8Flag1;  //flag for onrequest from IIC to if master has asked
-//unsigned char cmdsession=0;  //the number of the cmdsession that last took place, total number that has occured, first is 1 not 0
 
 byte bufFront, bufBack, bufCurr;                // used for handling the buffers
 byte readI2c,i;
+
+#define START_OF_DATA 0x10
+#define END_OF_DATA 0x20
 
 void setup() {
   readI2c=0;
@@ -32,9 +33,6 @@ void setup() {
 
   Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus (address optional for master) 
   Wire.onReceive(receiveEvent); // define the receive function for receiving data from master
- // Wire.onRequest(requestEvent); // define the request function for the request from master
-
-  //  init_timer2();  // initialize the timer for scanning the LED matrix
 
   //calculate: 64(256-GAMMA)/16000000 = x;  
   //gamma 231: 0.0001    -> original 
@@ -45,46 +43,53 @@ void setup() {
 }
 
 void loop() {
-    delayMicroseconds(10);
+  uint8_t b;
+  delayMicroseconds(10);
   
-  if (readI2c) {
+  //check if buffer is filled
+  if (readI2c>97) {
     readI2c=0;
+    //read header, wait until we get a START__OF_DATA or queue is empty
+    i=0;
+    while (Wire.available()>0 && i==0) {
+      b = Wire.receive();
+      if (b == START_OF_DATA) {
+        i=1;
+      }
+    }
+    
+    if (i==0) {
+      //error
+      return;
+    }
+  
     for (byte b=1; b<4; b++) {
       i=0;
-      while(Wire.available()>0 && i<32) { 
+      while (Wire.available()>0 && i<32) { 
         RainbowCMD[b][i]=Wire.receive();  //recieve whatever is available
         i++;
       }
     }
-    DispshowFrame();
-  }
-  
-/*  switch (State) {
-
-  case waitingcmd:
-    delayMicroseconds(4);
-    break;
-
-  case morecmd:
-    break;
-
-  case processing:
-    processWireCommand();
-    State=checking;
-    break;
-
-  case checking:
-    if(CheckRequest) {
-      State=waitingcmd;
-      ClrRequest;
+    
+    //check footer
+    b=0;
+    if (Wire.available()>0) {
+      b = Wire.receive();      
     }
-    break;
+    
+    if (b == END_OF_DATA) {
+      DispshowFrame();
+    } else {
+      //error, try to read data until eod marker if possible
+      while (Wire.available()>0 && i==0) {
+        b = Wire.receive();
+        if (b == END_OF_DATA) {
+          i=1;
+        }
+      }
 
-  default:
-    State=waitingcmd; 
-    break;
+    }
   }
-*/
 }
 
 
@@ -123,131 +128,16 @@ void displayNextLine() {
   }
 }
 
-//Interrupt-Service-Routine
-/*
-ISR(TIMER2_OVF_vect)          //Timer2  Service 
- { 
- TCNT2 = GamaTab[level];    // Reset a  scanning time by gamma value table
- flash_next_line(line, level);  // scan the next line in LED matrix level by level.
- line++;
- if(line>7)        // when have scaned all LEC the back to line 0 and add the level
- {
- line=0;
- level++;
- if(level>15) {
- level=0;
- //SWAP buffer
- bufCurr = bufFront;       // do the actual swapping, synced with display refresh.
- }
- }
- }
- 
- //For a 16MHz system clock, 100us = 1600 clock ticks.
- //Target Timer Count = (1 / Target Frequency) / (1 / Timer Clock Frequency) - 1
- 
- //16Mhz / 64 (prescaler 64) = 250'000hz
- //250'000hz/256 = 976 hz ??
- 
- //Setup Timer2.
- //Configures the ATMega168 8-Bit Timer2 to generate an interrupt
- //at the specified frequency.
- //Returns the timer load value which must be loaded into TCNT2
- //inside your ISR routine.
- void init_timer2(void)               
- {
- //TCCR2A – Timer/Counter Control Register A
- TCCR2A |= (1 << WGM21) | (1 << WGM20);   
- 
- //TCCR2B – Timer/Counter Control Register B
- 
- //set clock select:
- //CS22 CS21 CS20 Description
- //   1    0    0 clkT2S/64 (From prescaler
- TCCR2B |= (1<<CS22);   // by clk/64
- TCCR2B &= ~((1<<CS21) | (1<<CS20));   // by clk/64
- 
- // turn off WGM21 and WGM20 bits 
- TCCR2B &= ~((1<<WGM21) | (1<<WGM20));   // Use normal mode
- 
- //ASSR – Asynchronous Status Register
- ASSR |= (0<<AS2);       // Use internal clock - external clock not used in Arduino
- 
- //TIMSK2 – Timer/Counter2 Interrupt Mask Register
- //TOIE2: Timer/Counter2 Overflow Interrupt Enable
- //OCIE2B: Timer/Counter2 Output Compare Match B Interrupt Enable
- TIMSK2 |= (1<<TOIE2) | (0<<OCIE2B);
- 
- //load time value into TCNT2 – Timer/Counter Register  
- TCNT2 = GamaTab[0];
- sei();                 //enable interrupts
- }
- 
- */
 //=============HANDLERS======================================
 
 //get data from master
-//HINT: do not handle stuff here!! this does NOT work!
+//HINT: do not handle stuff here!! this will NOT work
+//collect only data here and process it in the main loop!
 void receiveEvent(int numBytes) {
-//  unsigned char i;
-  readI2c=1;
-  
-/*
-  if (cmdsession>4) {
-    //oops!
-    cmdsession=0;
-  }
-  unsigned char i=0;
-  while(Wire.available()>0 && i<32) { 
-    RainbowCMD[cmdsession][i]=Wire.receive();  //recieve whatever is available
-    i++;
-  }
-  cmdsession++;  //increment that the session has finished
-
-  switch (RainbowCMD[0][0]){
-
-  case 'F':    //get frame
-    if(cmdsession<4) {
-      State=morecmd;  //if not all 4 have been recieved change state to ask for more
-    } 
-    else 
-      if ((i==32)&&(cmdsession==4)){  //if 4th session occured, and double check it's the right size
-      State=processing;
-      cmdsession=0;  //reset cmdsession
-    } 
-    break;
-
-  }*/
+  readI2c+=numBytes;
 }
 
-/*
-void requestEvent(void)  //when the master requests from the slave, this is the handler
-{
-  unsigned char trans;  //what is to be transmitted
 
-  if (State==morecmd) {
-    trans=(morecmd|cmdsession);  //when asking for more data, send the number of the last session recived, then master knows to send the next one
-  } 
-  else {
-    trans=State;  //otherwise tell the master what state the slave is in
-  }
-
-  Wire.send(trans); 
-
-  if ((State==processing)||(State==checking)) {
-    //the slave is now working on a command, can continue to run without receiving data
-    SetRequest;
-  } 
-
-}*/
-
-
-/*void processWireCommand(void) {
-  switch (RainbowCMD[0][0]){  //figure out which function to run based on command
-  case 'F':
-    DispshowFrame();
-    break;
-  }
-}*/
 //==============DISPSHOW========================================
 void DispshowFrame(void) {
   unsigned char color,row,dots,correctcol,ofs;

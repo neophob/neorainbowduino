@@ -47,11 +47,4 @@
 #define SetRequest (g8Flag1|=0x01)
 #define ClrRequest (g8Flag1&=~0x01)
 
-//==============================================
-//States
-//#define waitingcmd 0x00
-//#define morecmd 0x10
-//#define processing  0x20
-//#define checking  0x30
-
 #endif

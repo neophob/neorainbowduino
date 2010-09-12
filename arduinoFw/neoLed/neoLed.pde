@@ -14,8 +14,6 @@
 #define CMD_START_BYTE  0x01
 #define CMD_PING  0x04
 #define CMD_HEARTBEAT 0x10
-#define START_OF_DATA 0x10;
-#define END_OF_DATA 0x20;
 
 #define SERIAL_WAIT_TIME_IN_MS 20
 
@@ -65,6 +63,7 @@ int send_initial_image(byte i2caddr) {
   return BlinkM_sendBuffer(i2caddr, serInStr);
 }
 
+
 void setup() {
   Wire.begin(); // join i2c bus (address optional for master)
 
@@ -74,22 +73,13 @@ void setup() {
   Serial.begin(BAUD_RATE); //Setup high speed Serial
   Serial.flush();
 
-  errorCounter=0;
   //clear both rainbowduinos - 
   //hint init will fail if both rainbowduinos are not available!
+  errorCounter=send_initial_image(0x06);
 //  errorCounter+=send_initial_image(0x05);
-  errorCounter+=send_initial_image(0x06);
-/*  int tmp=send_initial_image(0x06);
-  if (tmp>0) errorCounter=0x06;
 
-  tmp=send_initial_image(0x05);
-  if (tmp>0) errorCounter+=0x05;
-  
-  heartbeat();
-  errorCounter=0;
-*/
   //do not send serial data too often
-  MsTimer2::set(1000, heartbeat); // 3000ms period
+  MsTimer2::set(3000, heartbeat); // 3000ms period
   MsTimer2::start();
 }
 
@@ -120,11 +110,9 @@ void loop()
   else {
     //else its a frame, a frame need 96 bytes
     if (sendlen!=96) {
-//      errorCounter++;
         errorCounter=999;
       return;
     }
-//    errorCounter += BlinkM_sendBuffer(addr, cmd);
     errorCounter = BlinkM_sendBuffer(addr, cmd);
   }    
 

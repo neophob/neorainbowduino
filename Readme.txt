@@ -5,8 +5,8 @@ needed libraries:
 libraries to patch:
  Wire: 
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
- 				   #define TWI_BUFFER_LENGTH 96 (was 32)
- 	wire.h: #define BUFFER_LENGTH 96 (was 32)
+ 				   #define TWI_BUFFER_LENGTH 98 (was 32)
+ 	wire.h: #define BUFFER_LENGTH 98 (was 32)
  	
 
 Hint: make sure you restart arduino after patching the files!
