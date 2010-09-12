@@ -51,7 +51,7 @@ public class Rainbowduino implements Runnable {
 	private static final byte CMD_HEARTBEAT = 0x10;
 	private static final byte START_OF_DATA = 0x10;
 	private static final byte END_OF_DATA = 0x20;
-	
+
 	private PApplet app;
 
 	private int baud = 57600;//115200;
@@ -60,8 +60,11 @@ public class Rainbowduino implements Runnable {
 	private Thread runner;
 	private long arduinoHeartbeat;
 	private int arduinoBufferSize;
+	//logical errors reported by arduino
 	private int arduinoErrorCounter;
-	
+	//connection errors to arduino
+	private int connectionErrorCounter;
+
 	/**
 	 * Create a new instance to communicate with the rainbowduino. Make sure to (auto)init the serial port, too 
 	 * 
@@ -142,16 +145,19 @@ public class Rainbowduino implements Runnable {
 	 */
 	public void initPort(String port_name, int _baud, boolean check) {
 		if(_baud > 0) this.baud = _baud;
-		openPort(port_name, check);
+		//openPort(port_name, check);
 		String[] ports = Serial.list();
 		for(int i = 0; port == null && i < ports.length; i++) {
-			if(PApplet.match(ports[i], "tty") == null) continue;
+			if (PApplet.match(ports[i], "tty") == null) continue;
+			if (PApplet.match(ports[i], "tty.Bluetooth") != null) continue;
+			if (PApplet.match(ports[i], "tty.Nokia") != null) continue;
+			
 			log.log(Level.INFO,
 					"open port: {0} "
 					, new Object[] { ports[i] });
 
 			openPort(ports[i], check);
-		}			
+		}						
 	}
 
 	/* *********************** */
@@ -165,12 +171,13 @@ public class Rainbowduino implements Runnable {
 	 * @return whether port could be opened sucessfully 
 	 */
 	private boolean openPort(String port_name, boolean check) {
-		if(port_name == null) return false;
+		if (port_name == null) return false;
 		try {
 			port = new Serial(app, port_name, this.baud);
 			sleep(1500); //give it time to initialize		
-			if(!check || ping((byte)0)) {
+			if (!check || ping((byte)0)) {
 				this.runner = new Thread(this);
+				this.runner.setName("ZZ Arduino Heartbeat Thread");
 				this.runner.start(); 
 				return true; //skip check			
 			}
@@ -178,10 +185,8 @@ public class Rainbowduino implements Runnable {
 					"No response from port {0}"
 					, new Object[] { port_name });
 
-		}
-		catch (Exception e) {			
-		}
-		if(port != null) port.stop();        					
+		} catch (Exception e) {	}
+		if (port != null) port.stop();        					
 		port = null;
 		return false;
 	}
@@ -205,7 +210,7 @@ public class Rainbowduino implements Runnable {
 		 */
 		byte cmdfull[] = new byte[7];
 		cmdfull[0] = START_OF_CMD;
-		cmdfull[1] = addr; //unused yet!
+		cmdfull[1] = addr; //unused here!
 		cmdfull[2] = 0x01;
 		cmdfull[3] = CMD_PING;
 		cmdfull[4] = START_OF_DATA;
@@ -252,6 +257,8 @@ public class Rainbowduino implements Runnable {
 	 * @param check wheter to perform sensity check
 	 */
 	public synchronized void sendFrame(byte addr, byte data[], boolean check) {
+		//if (connectionErrorCounter>10000) {}
+		
 		byte cmdfull[] = new byte[6+data.length];
 		cmdfull[0] = START_OF_CMD;
 		cmdfull[1] = addr;
@@ -262,8 +269,13 @@ public class Rainbowduino implements Runnable {
 			cmdfull[5+i] = data[i];
 		}
 		cmdfull[data.length+5] = END_OF_DATA;
-		port.write(cmdfull);
-		//TODO add error counter and disable write after an amout f erros
+		
+		try {
+			port.write(cmdfull);	
+		} catch (Exception e) {
+			log.warning("Failed to send data to serial port!");
+			connectionErrorCounter++;
+		}
 	}
 
 
