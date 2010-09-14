@@ -56,6 +56,8 @@ public class Rainbowduino implements Runnable {
 
 	private int baud = 57600;//115200;
 	private Serial port;
+	
+	private static int[] gammaTab;
 
 	private Thread runner;
 	private long arduinoHeartbeat;
@@ -72,6 +74,14 @@ public class Rainbowduino implements Runnable {
 	 */
 	public Rainbowduino(PApplet _app) {
 		this.app = _app;
+		double gamma = 2.2f;
+		
+		double max = 255; 
+        gammaTab = new int[256]; 
+        double scale = max / Math.pow(255, gamma); 
+        for (int i = 0; i < 256; i++) { 
+                gammaTab[i] = (int)Math.round((scale * Math.pow(i, gamma))); 
+        }    
 		app.registerDispose(this);
 	}
 
@@ -305,6 +315,7 @@ public class Rainbowduino implements Runnable {
 		int tmp;
 		int ofs=0;
 		int dst=0;
+		int n;
 
 		//step#1: split up r/g/b
 		for (int y=0; y<height; y++) {
@@ -312,9 +323,16 @@ public class Rainbowduino implements Runnable {
 				//one int contains the rgb color
 				tmp = data[ofs++];
 				//the buffer on the rainbowduino takes GRB, not RGB
-				r[dst] = (int) ((tmp>>16) & 255);
-				g[dst] = (int) ((tmp>>8)  & 255);       
-				b[dst] = (int) ( tmp      & 255);
+				
+				n=(int) ((tmp>>16) & 255);
+				r[dst] = gammaTab[n];
+				
+				n = (int) ((tmp>>8)  & 255);
+				g[dst] = gammaTab[n];
+				
+				n = (int) ( tmp      & 255);
+				b[dst] = gammaTab[n];
+				
 				dst++;
 			}
 		}
