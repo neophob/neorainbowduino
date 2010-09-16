@@ -76,7 +76,7 @@ void setup() {
   //clear both rainbowduinos - 
   //hint init will fail if both rainbowduinos are not available!
   errorCounter=send_initial_image(0x06);
-//  errorCounter+=send_initial_image(0x05);
+  errorCounter+=send_initial_image(0x05);
 
   //do not send serial data too often
   MsTimer2::set(3000, heartbeat); // 3000ms period
