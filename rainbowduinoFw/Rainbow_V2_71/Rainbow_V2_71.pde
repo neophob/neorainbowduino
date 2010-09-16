@@ -17,12 +17,11 @@ byte readI2c,i;
 
 void setup() {
   readI2c=0;
-  //needed?
-  DDRD=0xff;
-  DDRC=0xff;
-  DDRB=0xff;
-  PORTD=0;
-  PORTB=0; 
+  DDRD=0xff;        // Configure ports (see http://www.arduino.cc/en/Reference/PortManipulation): digital pins 0-7 as OUTPUT
+  DDRC=0xff;        // analog pins 0-5 as OUTPUT
+  DDRB=0xff;        // digital pins 8-13 as OUTPUT
+  PORTD=0;          // Configure ports data register (see link above): digital pins 0-7 as READ
+  PORTB=0;          // digital pins 8-13 as READ
 
   level = 0;
   line = 0;
@@ -35,9 +34,12 @@ void setup() {
   Wire.onReceive(receiveEvent); // define the receive function for receiving data from master
 
   //calculate: 64(256-GAMMA)/16000000 = x;  
-  //gamma 231: 0.0001    -> original 
-  //gamma 240: 0.000064  -> wie original
-  //gamma 250: 0.000024  -> does not work
+  //gamma 200(0xc8): 0.000224  -> flimmert
+  //gamma 215(0xd7): 0.000164  -> leichtes flimmern
+  //gamma 221(0xdd): 0.00014   -> original
+  //gamma 231(0xe7): 0.0001    -> original 
+  //gamma 240(0xf0): 0.000064  -> wie original
+  //gamma 250(0xfa): 0.000024  -> does not work
   FlexiTimer2::set(1, 0.0001, displayNextLine);
   FlexiTimer2::start();
 }
@@ -97,7 +99,7 @@ void swapBuffers() { // Swap Front with Back buffer
   // bufFront = !bufFront;
   // bufBack = !bufBack;
 
-  //TODO: 
+  //disable and enable interrupts does not improve image!
   //cli();  // disable interrupts
   if (bufFront==0) bufFront=1; 
   else bufFront=0;
@@ -116,7 +118,7 @@ void swapBuffers() { // Swap Front with Back buffer
 void displayNextLine() {
   flash_next_line(line, level);  // scan the next line in LED matrix level by level.
   line++;
-  if(line>7)        // when have scaned all LEC the back to line 0 and add the level
+  if(line>7)        // when have scaned all LED's, back to line 0 and add the level
   {
     line=0;
     level++;
@@ -193,15 +195,16 @@ void flash_next_line(unsigned char line,unsigned char level) // scan one line
 {
   disable_oe;
   close_all_line;
-  open_line(line);
-  /*TODO    if(ln < 3) {    // Open the line and close others
-   PORTB  = (PINB & ~0x07) | 0x04 >> ln;
+  //open_line(line);
+  //TODO    
+  if(line < 3) {    // Open the line and close others
+   PORTB  = (PINB & ~0x07) | 0x04 >> line;
    PORTD  = (PIND & ~0xF8);
    } else {
    PORTB  = (PINB & ~0x07);
-   PORTD  = (PIND & ~0xF8) | 0x80 >> (ln - 3);
+   PORTD  = (PIND & ~0xF8) | 0x80 >> (line - 3);
    }
-   */
+   
   shift_24_bit(line,level);
   enable_oe;
 }
@@ -209,16 +212,15 @@ void flash_next_line(unsigned char line,unsigned char level) // scan one line
 //==============================================================
 void shift_24_bit(unsigned char line, unsigned char level)   // display one line by the color level in buff
 {
-  unsigned char color=0,row=0;
-  unsigned char data0=0,data1=0;
+  unsigned char color,row,data0,data1;
   le_high;
-  for(color=0;color<3;color++)//GRB
+  for (color=0;color<3;color++)//GRB
   {
-    for(row=0;row<4;row++)
+    for (row=0;row<4;row++)
     {
       data1=buffer[bufCurr][color][line][row]&0x0f;
       data0=buffer[bufCurr][color][line][row]>>4;
-
+/*
       if(data0>level)   //gray scale,0x0f aways light
       {
         shift_1_bit(1);
@@ -235,6 +237,21 @@ void shift_24_bit(unsigned char line, unsigned char level)   // display one line
       else
       {
         shift_1_bit(0);
+      }*/
+      if(data0>level) {    //gray scale, 0x0f aways light (original comment, not sure what it means)
+        shift_data_1;
+        clk_rising;
+      } else {
+        shift_data_0;
+        clk_rising;
+      }
+      
+      if(data1>level) {
+        shift_data_1;
+        clk_rising;
+      } else {
+        shift_data_0;
+        clk_rising;
       }
     }
   }
