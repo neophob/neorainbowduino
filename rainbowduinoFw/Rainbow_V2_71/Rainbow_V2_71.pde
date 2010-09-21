@@ -40,6 +40,7 @@ void setup() {
   //gamma 231(0xe7): 0.0001    -> original 
   //gamma 240(0xf0): 0.000064  -> wie original
   //gamma 250(0xfa): 0.000024  -> does not work
+  //10kHz resolution
   FlexiTimer2::set(1, 0.0001, displayNextLine);
   FlexiTimer2::start();
 }
