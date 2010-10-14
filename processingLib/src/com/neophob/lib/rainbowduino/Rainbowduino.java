@@ -162,16 +162,16 @@ public class Rainbowduino implements Runnable {
 	/**
 	 * auto init serial port by default values
 	 */
-	public void initPort() {
-		this.initPort(null, 0, true);
+	public void initPort() throws NoSerialPortFoundException {
+		this.initPort(null, 0);
 	}
 
 	/**
 	 * Auto init serial port with given baud rate
 	 * @param _baud
 	 */
-	public void initPort(int _baud) {
-		this.initPort(null, _baud, true);
+	public void initPort(int baud) throws NoSerialPortFoundException {
+		this.initPort(null, baud);
 	}	
 
 	/**
@@ -179,21 +179,33 @@ public class Rainbowduino implements Runnable {
 	 * No sensity checks
 	 * 
 	 */
-	public void initPort(String port_name, int _baud, boolean check) {
-		if(_baud > 0) this.baud = _baud;
-		//openPort(port_name, check);
-		String[] ports = Serial.list();
-		for(int i = 0; port == null && i < ports.length; i++) {
-			if (PApplet.match(ports[i], "tty") == null) continue;
-			if (PApplet.match(ports[i], "tty.Bluetooth") != null) continue;
-			if (PApplet.match(ports[i], "tty.Nokia") != null) continue;
-			
-			log.log(Level.INFO,
-					"open port: {0} "
-					, new Object[] { ports[i] });
-
-			openPort(ports[i], check);
-		}						
+	public void initPort(String portName, int baud) throws NoSerialPortFoundException {
+		if(baud > 0) this.baud = baud;
+		
+		if (portName!=null && !portName.trim().isEmpty()) {
+			//open specific port
+			log.log(Level.INFO,	"open port: {0}", portName);
+			openPort(portName);
+		} else {
+			//try to find the port
+			String[] ports = Serial.list();
+			for (int i=0; port==null && i<ports.length; i++) {
+				if (PApplet.match(ports[i], "tty") == null) continue;
+				if (PApplet.match(ports[i], "tty.Bluetooth") != null) continue;
+				if (PApplet.match(ports[i], "tty.Nokia") != null) continue;
+				
+				log.log(Level.INFO,	"open port: {0}", ports[i]);
+				openPort(ports[i]);
+			}
+		}
+		
+		if (port==null) {
+			log.log(Level.WARNING,	"failed to open serial port!");
+			throw new NoSerialPortFoundException();
+		}
+		
+		log.log(Level.INFO,	"found serial port!");
+		
 	}
 
 	/* *********************** */
@@ -202,25 +214,23 @@ public class Rainbowduino implements Runnable {
 	 * Open serial port with given name. Send ping to check if port is working.
 	 * If not port is closed and set back to null
 	 * 
-	 * @param port_name port to open
+	 * @param portName port to open
 	 * @param check whether to perform valid checks
 	 * @return whether port could be opened sucessfully 
 	 */
-	private boolean openPort(String port_name, boolean check) {
-		if (port_name == null) return false;
+	private boolean openPort(String portName) {
+		if (portName == null) return false;
 		try {
-			port = new Serial(app, port_name, this.baud);
+			port = new Serial(app, portName, this.baud);
 			sleep(1500); //give it time to initialize		
-			if (!check || ping((byte)0)) {
+			if (ping((byte)0)) {
 				this.runner = new Thread(this);
 				this.runner.setName("ZZ Arduino Heartbeat Thread");
 				this.runner.start(); 
 				return true; //skip check			
 			}
 			log.log(Level.WARNING,
-					"No response from port {0}"
-					, new Object[] { port_name });
-
+					"No response from port {0}", portName);
 		} catch (Exception e) {	}
 		if (port != null) port.stop();        					
 		port = null;
