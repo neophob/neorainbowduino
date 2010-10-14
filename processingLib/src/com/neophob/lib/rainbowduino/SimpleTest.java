@@ -11,9 +11,14 @@ public class SimpleTest extends PApplet {
 		try {
 			r.initPort();
 		} catch (NoSerialPortFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}	
+		}		
+
+		/*try {
+			r.initPort("dunno");
+		} catch (NoSerialPortFoundException e) {
+			e.printStackTrace();
+		}*/	
 		noLoop();
 	}
 	

@@ -23,6 +23,7 @@ Boston, MA  02111-1307  USA
 
 package com.neophob.lib.rainbowduino;
 
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -168,10 +169,19 @@ public class Rainbowduino implements Runnable {
 
 	/**
 	 * Auto init serial port with given baud rate
-	 * @param _baud
+	 * @param baud
 	 */
 	public void initPort(int baud) throws NoSerialPortFoundException {
 		this.initPort(null, baud);
+	}	
+
+	/**
+	 * 
+	 * @param portName
+	 * @throws NoSerialPortFoundException
+	 */
+	public void initPort(String portName) throws NoSerialPortFoundException {
+		this.initPort(portName, 0);
 	}	
 
 	/**
@@ -180,7 +190,9 @@ public class Rainbowduino implements Runnable {
 	 * 
 	 */
 	public void initPort(String portName, int baud) throws NoSerialPortFoundException {
-		if(baud > 0) this.baud = baud;
+		if(baud > 0) {
+			this.baud = baud;
+		}
 		
 		if (portName!=null && !portName.trim().isEmpty()) {
 			//open specific port
@@ -190,10 +202,9 @@ public class Rainbowduino implements Runnable {
 			//try to find the port
 			String[] ports = Serial.list();
 			for (int i=0; port==null && i<ports.length; i++) {
-				if (PApplet.match(ports[i], "tty") == null) continue;
-				if (PApplet.match(ports[i], "tty.Bluetooth") != null) continue;
-				if (PApplet.match(ports[i], "tty.Nokia") != null) continue;
-				
+				if (ports[i].equalsIgnoreCase("tty")) continue;
+				if (ports[i].equalsIgnoreCase("tty.Bluetooth")) continue;
+				if (ports[i].equalsIgnoreCase("tty.Nokia")) continue;
 				log.log(Level.INFO,	"open port: {0}", ports[i]);
 				openPort(ports[i]);
 			}
@@ -218,23 +229,25 @@ public class Rainbowduino implements Runnable {
 	 * @param check whether to perform valid checks
 	 * @return whether port could be opened sucessfully 
 	 */
-	private boolean openPort(String portName) {
-		if (portName == null) return false;
+	private void openPort(String portName) {
+		if (portName == null) {
+			return;
+		}
+		
 		try {
 			port = new Serial(app, portName, this.baud);
 			sleep(1500); //give it time to initialize		
 			if (ping((byte)0)) {
 				this.runner = new Thread(this);
 				this.runner.setName("ZZ Arduino Heartbeat Thread");
-				this.runner.start(); 
-				return true; //skip check			
+				this.runner.start(); 			
 			}
-			log.log(Level.WARNING,
-					"No response from port {0}", portName);
-		} catch (Exception e) {	}
+			log.log(Level.WARNING, "No response from port {0}", portName);
+		} catch (Exception e) {	
+			log.log(Level.WARNING, "Failed to open port {0}", portName);
+		}
 		if (port != null) port.stop();        					
 		port = null;
-		return false;
 	}
 
 
@@ -262,7 +275,16 @@ public class Rainbowduino implements Runnable {
 		cmdfull[4] = START_OF_DATA;
 		cmdfull[5] = 0x02;
 		cmdfull[6] = END_OF_DATA;
-		port.write(cmdfull);
+
+		//do not use the processing command, as it displays ugly error messages on the console!
+		//port.write(cmdfull);
+		try {
+			port.output.write(cmdfull);
+			port.output.flush();
+		} catch (Exception e) {
+			//e.printStackTrace();
+			return false;
+		}
 
 		int timeout=25; //wait up to 2.5s
 		while( timeout > 0 && port.available() < 2) {
