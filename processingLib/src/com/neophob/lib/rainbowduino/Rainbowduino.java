@@ -153,6 +153,7 @@ public class Rainbowduino implements Runnable {
 		return VERSION;
 	}
 
+	
 	/**
 	 * @return wheter rainbowudino is connected
 	 */
@@ -160,6 +161,7 @@ public class Rainbowduino implements Runnable {
 		return (port != null);
 	}	
 
+	
 	/**
 	 * auto init serial port by default values
 	 */
@@ -167,6 +169,7 @@ public class Rainbowduino implements Runnable {
 		this.initPort(null, 0);
 	}
 
+	
 	/**
 	 * Auto init serial port with given baud rate
 	 * @param baud
@@ -175,6 +178,7 @@ public class Rainbowduino implements Runnable {
 		this.initPort(null, baud);
 	}	
 
+	
 	/**
 	 * 
 	 * @param portName
@@ -184,6 +188,7 @@ public class Rainbowduino implements Runnable {
 		this.initPort(portName, 0);
 	}	
 
+	
 	/**
 	 * Open serial port with given name and baud rate.
 	 * No sensity checks
@@ -218,16 +223,14 @@ public class Rainbowduino implements Runnable {
 		log.log(Level.INFO,	"found serial port!");
 		
 	}
-
-	/* *********************** */
+	
 
 	/**
-	 * Open serial port with given name. Send ping to check if port is working.
+ 	 * 
+ 	 * Open serial port with given name. Send ping to check if port is working.
 	 * If not port is closed and set back to null
 	 * 
-	 * @param portName port to open
-	 * @param check whether to perform valid checks
-	 * @return whether port could be opened sucessfully 
+	 * @param portName
 	 */
 	private void openPort(String portName) {
 		if (portName == null) {
@@ -240,13 +243,17 @@ public class Rainbowduino implements Runnable {
 			if (ping((byte)0)) {
 				this.runner = new Thread(this);
 				this.runner.setName("ZZ Arduino Heartbeat Thread");
-				this.runner.start(); 			
+				this.runner.start(); 	
+				return;
 			}
 			log.log(Level.WARNING, "No response from port {0}", portName);
 		} catch (Exception e) {	
 			log.log(Level.WARNING, "Failed to open port {0}", portName);
 		}
-		if (port != null) port.stop();        					
+		
+		if (port != null) {
+			port.stop();        					
+		}
 		port = null;
 	}
 
@@ -317,6 +324,7 @@ public class Rainbowduino implements Runnable {
 		sendFrame(addr, buffer);
 	}
 
+	
 	/**
 	 * send a frame to the active rainbowduino the data needs to be in this format:
 	 * buffer[3][8][4], The array to be sent formatted as [color][row][dots]   
