@@ -58,6 +58,9 @@ public class Rainbowduino implements Runnable {
 	private int baud = 57600;//115200;
 	private Serial port;
 	
+	
+	//the home made gamma table - please note:
+	//the rainbowduino has a color resoution if 4096 colors (12bit)
 	private static int[] gammaTab = {       
 		0,      0,      0,      0,      0,      0,      0,      0,
 		0,      0,      0,      0,      0,      0,      0,      0,
@@ -207,9 +210,6 @@ public class Rainbowduino implements Runnable {
 			//try to find the port
 			String[] ports = Serial.list();
 			for (int i=0; port==null && i<ports.length; i++) {
-				if (ports[i].equalsIgnoreCase("tty")) continue;
-				if (ports[i].equalsIgnoreCase("tty.Bluetooth")) continue;
-				if (ports[i].equalsIgnoreCase("tty.Nokia")) continue;
 				log.log(Level.INFO,	"open port: {0}", ports[i]);
 				openPort(ports[i]);
 			}
