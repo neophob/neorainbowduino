@@ -5,12 +5,6 @@
 #define I2C_DEVICE_ADDRESS 0x06
 
 //=============================================
-//MBI5168
-#define SH_DIR_OE    DDRC
-#define SH_DIR_SDI   DDRC
-#define SH_DIR_CLK   DDRC
-#define SH_DIR_LE    DDRC
-
 #define SH_BIT_OE    0x08
 #define SH_BIT_SDI   0x01
 #define SH_BIT_CLK   0x02
@@ -23,6 +17,7 @@
 #define SH_PORT_CLK  PORTC
 #define SH_PORT_LE   PORTC
 //============================================
+
 #define clk_rising  {SH_PORT_CLK&=~SH_BIT_CLK;SH_PORT_CLK|=SH_BIT_CLK;}
 #define le_high     {SH_PORT_LE|=SH_BIT_LE;}
 #define le_low      {SH_PORT_LE&=~SH_BIT_LE;}
@@ -41,10 +36,5 @@
 #define open_line6	{PORTD=0x10;}
 #define open_line7	{PORTD=0x08;}
 #define close_all_line	{PORTD&=~0xf8;PORTB&=~0x07;}
-//============================================
-//onrequest flags for IIC
-#define CheckRequest (g8Flag1&0x01)
-#define SetRequest (g8Flag1|=0x01)
-#define ClrRequest (g8Flag1&=~0x01)
 
 #endif

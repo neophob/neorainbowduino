@@ -10,10 +10,6 @@ libraries to patch:
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
  				   #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
- 	
-Make sure you change the I2C_DEVICE_ADDRESS defined in the Rainbow.h file
-for each rainbowduino device!
-
 */
 
 
@@ -21,12 +17,10 @@ for each rainbowduino device!
 #include <FlexiTimer2.h>
 #include "Rainbow.h"
 
-//extern unsigned char GamaTab[16];             //define the Gamma value for correct the different LED matrix
 extern unsigned char buffer[2][3][8][4];  //define Two Buffs (one for Display ,the other for receive data)
 extern unsigned char RainbowCMD[4][32];  //the glorious command structure array
 
 unsigned char line,level;
-unsigned char g8Flag1;  //flag for onrequest from IIC to if master has asked
 
 byte bufFront, bufBack, bufCurr;                // used for handling the buffers
 byte readI2c,i;
