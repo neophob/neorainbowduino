@@ -26,6 +26,8 @@ libraries to patch:
 #define CMD_PING  0x04
 #define CMD_HEARTBEAT 0x10
 
+#define REPLY_OK          1   //followed by return params
+
 #define SERIAL_WAIT_TIME_IN_MS 20
 
 //this should match RX_BUFFER_SIZE from HardwareSerial.cpp
@@ -33,8 +35,9 @@ byte serInStr[128];  // array that will hold the serial input string
 byte errorCounter;
 byte send[4];
 
+//send serial reply to processing lib
 static void sendSerialResponse(byte command, byte param) {
-  send[0]=OK;
+  send[0]=REPLY_OK;
   send[1]=command;
   send[2]=param;
   send[3]=Serial.available();

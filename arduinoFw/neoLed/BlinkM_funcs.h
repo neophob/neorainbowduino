@@ -1,13 +1,6 @@
 
 #include "WProgram.h"
-#include "wiring.h"
 #include "Wire.h"
-
-#define OK          1   //followed by return params
-
-//#define PING        2 //returns OK + Version number
-#define API_VER     3 //returns OK + Version number
-#define API_VERSION_NR 1
 
 #define START_OF_DATA 0x10
 #define END_OF_DATA 0x20
