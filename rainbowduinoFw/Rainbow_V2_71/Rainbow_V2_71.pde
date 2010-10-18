@@ -10,6 +10,10 @@ libraries to patch:
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
  				   #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
+ 	
+Make sure you change the I2C_DEVICE_ADDRESS defined in the Rainbow.h file
+for each rainbowduino device!
+
 */
 
 
