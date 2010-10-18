@@ -1,3 +1,18 @@
+/*
+arduino serial-i2c-gateway, by michael vogt / neophob.com 2010
+published as i-dont-give-a-shit-about-any-license
+
+needed libraries:
+ -FlexiTimer (http://github.com/wimleers/flexitimer2)
+ 
+libraries to patch:
+ Wire: 
+ 	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
+ 				   #define TWI_BUFFER_LENGTH 98 (was 32)
+ 	wire.h: #define BUFFER_LENGTH 98 (was 32)
+*/
+
+
 #include <Wire.h>
 #include <FlexiTimer2.h>
 #include "Rainbow.h"

@@ -1,6 +1,17 @@
-//arduino serial-i2c-gateway, by michael vogt / neophob.com 2010
-//published as i-dont-give-a-shit-about-any-license 
-//you need the MsTime2 library, check http://www.arduino.cc/playground/Main/MsTimer2
+/*
+arduino serial-i2c-gateway, by michael vogt / neophob.com 2010
+published as i-dont-give-a-shit-about-any-license
+
+needed libraries:
+ -MsTimer2 (http://www.arduino.cc/playground/Main/MsTimer2)
+ 
+libraries to patch:
+ Wire: 
+ 	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
+ 				   #define TWI_BUFFER_LENGTH 98 (was 32)
+ 	wire.h: #define BUFFER_LENGTH 98 (was 32)
+*/
+
 #include <MsTimer2.h>
 #include "Wire.h"
 #include "BlinkM_funcs.h"
