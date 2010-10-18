@@ -44,7 +44,7 @@ public class Rainbowduino implements Runnable {
 	public static int width = 8;
 	public static int height = width;
 
-	public final String VERSION = "1.0";
+	public final String VERSION = "1.1";
 
 	private static final byte START_OF_CMD = 0x01;
 	private static final byte CMD_PING = 0x04;
@@ -355,15 +355,26 @@ public class Rainbowduino implements Runnable {
 		}
 	}
 
-
+	/**
+	 * 
+	 * @return
+	 */
 	public int getArduinoErrorCounter() {
 		return arduinoErrorCounter;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public int getArduinoBufferSize() {
 		return arduinoBufferSize;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public long getArduinoHeartbeat() {
 		return arduinoHeartbeat;
 	}
@@ -415,7 +426,10 @@ public class Rainbowduino implements Runnable {
 		return converted;
 	}
 
-
+	/**
+	 * 
+	 * @param ms
+	 */
 	private void sleep(int ms) {
 		try {
 			Thread.sleep(ms);
@@ -424,6 +438,11 @@ public class Rainbowduino implements Runnable {
 		}
 	}
 
+	/**
+	 * 
+	 * @author michu
+	 *
+	 */
 	class RainbowduinoTimeOut extends Exception {}
 	class RainbowduinoError extends Exception {
 		int error;

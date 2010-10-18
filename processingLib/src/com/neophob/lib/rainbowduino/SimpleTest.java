@@ -2,10 +2,16 @@ package com.neophob.lib.rainbowduino;
 
 import processing.core.PApplet;
 
-
-
+/**
+ * 
+ * @author michu
+ *
+ */
 public class SimpleTest extends PApplet {
 
+	/**
+	 * 
+	 */
 	public void setup() {
 		Rainbowduino r = new Rainbowduino(this);
 		try {
