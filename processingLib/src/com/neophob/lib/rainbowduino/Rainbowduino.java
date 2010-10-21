@@ -23,7 +23,6 @@ Boston, MA  02111-1307  USA
 
 package com.neophob.lib.rainbowduino;
 
-import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,7 +43,7 @@ public class Rainbowduino implements Runnable {
 	public static int width = 8;
 	public static int height = width;
 
-	public final String VERSION = "1.1";
+	public final String VERSION = "1.2";
 
 	private static final byte START_OF_CMD = 0x01;
 	private static final byte CMD_PING = 0x04;
@@ -58,7 +57,14 @@ public class Rainbowduino implements Runnable {
 	private int baud = 57600;//115200;
 	private Serial port;
 	
-	
+	private Thread runner;
+	private long arduinoHeartbeat;
+	private int arduinoBufferSize;
+	//logical errors reported by arduino
+	private int arduinoErrorCounter;
+	//connection errors to arduino
+	private int connectionErrorCounter;
+
 	//the home made gamma table - please note:
 	//the rainbowduino has a color resoution if 4096 colors (12bit)
 	private static int[] gammaTab = {       
@@ -97,13 +103,6 @@ public class Rainbowduino implements Runnable {
         240,    240,    240,    240,    240,    255,    255,    255 
     };
 
-	private Thread runner;
-	private long arduinoHeartbeat;
-	private int arduinoBufferSize;
-	//logical errors reported by arduino
-	private int arduinoErrorCounter;
-	//connection errors to arduino
-	private int connectionErrorCounter;
 
 	/**
 	 * Create a new instance to communicate with the rainbowduino. Make sure to (auto)init the serial port, too 
@@ -169,7 +168,16 @@ public class Rainbowduino implements Runnable {
 	 * auto init serial port by default values
 	 */
 	public void initPort() throws NoSerialPortFoundException {
-		this.initPort(null, 0);
+		this.initPort(null, 0, false);
+	}
+
+	/**
+	 * 
+	 * @param useSimulator
+	 * @throws NoSerialPortFoundException
+	 */
+	public void initPort(boolean useSimulator) throws NoSerialPortFoundException {
+		this.initPort(null, 0, useSimulator);
 	}
 
 	
@@ -178,7 +186,7 @@ public class Rainbowduino implements Runnable {
 	 * @param baud
 	 */
 	public void initPort(int baud) throws NoSerialPortFoundException {
-		this.initPort(null, baud);
+		this.initPort(null, baud, false);
 	}	
 
 	
@@ -188,7 +196,7 @@ public class Rainbowduino implements Runnable {
 	 * @throws NoSerialPortFoundException
 	 */
 	public void initPort(String portName) throws NoSerialPortFoundException {
-		this.initPort(portName, 0);
+		this.initPort(portName, 0, false);
 	}	
 
 	
@@ -197,10 +205,12 @@ public class Rainbowduino implements Runnable {
 	 * No sensity checks
 	 * 
 	 */
-	public void initPort(String portName, int baud) throws NoSerialPortFoundException {
+	public void initPort(String portName, int baud, boolean useSimulator) throws NoSerialPortFoundException {
 		if(baud > 0) {
 			this.baud = baud;
 		}
+		
+		//this.useSimulator = useSimulator;
 		
 		if (portName!=null && !portName.trim().isEmpty()) {
 			//open specific port
@@ -215,12 +225,18 @@ public class Rainbowduino implements Runnable {
 			}
 		}
 		
-		if (port==null) {
+		if (port==null && !useSimulator) {
 			log.log(Level.WARNING,	"failed to open serial port!");
 			throw new NoSerialPortFoundException();
 		}
 		
-		log.log(Level.INFO,	"found serial port!");
+		if (useSimulator) {
+			//TODO msg if simulator and port used...
+			log.log(Level.INFO,	"use simulator");
+		} else {
+			log.log(Level.INFO,	"found serial port!");
+		}
+		
 		
 	}
 	
@@ -316,12 +332,11 @@ public class Rainbowduino implements Runnable {
 	 * the rgb image gets converted to the rainbowduino compatible
 	 * "image format"
 	 * 
-	 * @param data rgb data
-	 * @param check wheter to perform sensity check
+	 * @param addr the i2c address of the device
+	 * @param data rgb data (int[64], each int contains one RGB pixel)
 	 */
 	public void sendRgbFrame(byte addr, int[] data) {
-		byte buffer[] = convertRgbToRainbowduino(data);
-		sendFrame(addr, buffer);
+		sendFrame(addr, convertRgbToRainbowduino(data));
 	}
 
 	
@@ -329,11 +344,12 @@ public class Rainbowduino implements Runnable {
 	 * send a frame to the active rainbowduino the data needs to be in this format:
 	 * buffer[3][8][4], The array to be sent formatted as [color][row][dots]   
 	 * 
-	 * @param data byte[3][8][4]
+	 * @param addr the i2c address of the device
+	 * @param data byte[3*8*4]
 	 * @param check wheter to perform sensity check
 	 */
 	public synchronized void sendFrame(byte addr, byte data[]) {
-		//TODO stop if connection countrer > n
+		//TODO stop if connection counter > n
 		//if (connectionErrorCounter>10000) {}
 		
 		byte cmdfull[] = new byte[6+data.length];
@@ -382,8 +398,9 @@ public class Rainbowduino implements Runnable {
 	/**
 	 * convert rgb image data to rainbowduino compatible format
 	 * format 8x8x4
-	 * @param data
-	 * @return
+	 * 
+	 * @param data the rgb image as int[64]
+	 * @return rainbowduino compatible format as byte[3*8*4] 
 	 */
 	private static byte[] convertRgbToRainbowduino(int[] data) {
 		byte[] converted = new byte[3*8*4];
@@ -438,25 +455,5 @@ public class Rainbowduino implements Runnable {
 		}
 	}
 
-	/**
-	 * 
-	 * @author michu
-	 *
-	 */
-	class RainbowduinoTimeOut extends Exception {}
-	class RainbowduinoError extends Exception {
-		int error;
-
-		public RainbowduinoError(int _error) {
-			this.error = _error;			
-		}
-
-		public void print() {
-			log.log(Level.INFO,
-					"Error happend: {0} "
-					, new Object[] { this.error });
-
-		}		
-	}
 
 }
