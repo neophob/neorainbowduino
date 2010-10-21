@@ -24,6 +24,7 @@ libraries to patch:
 //some magic numberes
 #define CMD_START_BYTE  0x01
 #define CMD_PING  0x04
+#define CMD_INIT_RAINBOWDUINO 0x05
 #define CMD_HEARTBEAT 0x10
 
 #define REPLY_OK          1   //followed by return params
@@ -89,8 +90,8 @@ void setup() {
 
   //clear both rainbowduinos - 
   //hint init will fail if both rainbowduinos are not available!
-  errorCounter=send_initial_image(0x06);
-  errorCounter+=send_initial_image(0x05);
+//  errorCounter=send_initial_image(0x06);
+//  errorCounter+=send_initial_image(0x05);
 
   //do not send serial data too often
   MsTimer2::set(3000, heartbeat); // 3000ms period
@@ -117,19 +118,25 @@ void loop()
   //parameter
   byte* cmd    = serInStr+5;
 
-  if (type == CMD_PING) {
-    //simple ardiumo ping
-    sendSerialResponse(CMD_PING, 0); 
-  } 
-  else {
-    //else its a frame, a frame need 96 bytes
-    if (sendlen!=96) {
-        errorCounter=100;
-      return;
-    }
-    errorCounter = BlinkM_sendBuffer(addr, cmd);
-  }    
-
+  switch (type) {
+    case CMD_PING:
+        sendSerialResponse(CMD_PING, 0); 
+        break;
+    case CMD_INIT_RAINBOWDUINO:
+        //send initial image to rainbowduino
+        errorCounter = send_initial_image(addr);
+        //send status back to lib
+        heartbeat();
+        break;
+    default:
+        if (sendlen!=96) {
+          errorCounter=100;
+          return;
+        }
+        errorCounter = BlinkM_sendBuffer(addr, cmd);    
+        break;
+  }
+    
 }
 
 
