@@ -124,7 +124,7 @@ void loop()
   else {
     //else its a frame, a frame need 96 bytes
     if (sendlen!=96) {
-        errorCounter=999;
+        errorCounter=100;
       return;
     }
     errorCounter = BlinkM_sendBuffer(addr, cmd);
@@ -160,7 +160,7 @@ uint8_t readCommand(byte *str)
   }
 
   if (i==0) {
-    errorCounter++;
+    errorCounter=101;
     return 0;    
   }
 
@@ -169,7 +169,7 @@ uint8_t readCommand(byte *str)
   while (Serial.available() < HEADER_SIZE-1) {   // wait for the rest
     delay(1); 
     if( i-- == 0 ) {
-      errorCounter++;
+      errorCounter=102;
       return 0;        // get out if takes too long
     }
   }
@@ -179,14 +179,14 @@ uint8_t readCommand(byte *str)
   //check sendlen
   sendlen = str[2];
   if( sendlen == 0 ) {
-    errorCounter++;
+    errorCounter=103;
     return 0;
   }
   
   //check if data is correct, 0x10 = START_OF_DATA
   b = str[4];
   if ( b != 0x10 ) {
-    errorCounter++;
+    errorCounter=104;
     return 0;
   }
   
@@ -196,7 +196,7 @@ uint8_t readCommand(byte *str)
   while (Serial.available() < sendlen+1) {
     delay(1); 
     if( i-- == 0 ) {
-      errorCounter++;
+      errorCounter=105;
       return 0;
     }
   }
@@ -207,7 +207,7 @@ uint8_t readCommand(byte *str)
   //check if data is correct, 0x20 = END_OF_DATA
   b = str[HEADER_SIZE+sendlen];
   if( b != 0x20 ) {
-    errorCounter++;
+    errorCounter=106;
     return 0;
   }
   //return data size (without meta data)
