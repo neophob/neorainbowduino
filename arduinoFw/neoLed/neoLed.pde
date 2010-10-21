@@ -88,11 +88,6 @@ void setup() {
   Serial.begin(BAUD_RATE); //Setup high speed Serial
   Serial.flush();
 
-  //clear both rainbowduinos - 
-  //hint init will fail if both rainbowduinos are not available!
-//  errorCounter=send_initial_image(0x06);
-//  errorCounter+=send_initial_image(0x05);
-
   //do not send serial data too often
   MsTimer2::set(3000, heartbeat); // 3000ms period
   MsTimer2::start();
@@ -125,8 +120,6 @@ void loop()
     case CMD_INIT_RAINBOWDUINO:
         //send initial image to rainbowduino
         errorCounter = send_initial_image(addr);
-        //send status back to lib
-        heartbeat();
         break;
     default:
         if (sendlen!=96) {
