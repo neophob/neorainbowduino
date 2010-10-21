@@ -1,5 +1,7 @@
 package com.neophob.lib.rainbowduino;
 
+import java.util.ArrayList;
+
 import processing.core.PApplet;
 
 /**
@@ -13,18 +15,18 @@ public class SimpleTest extends PApplet {
 	 * 
 	 */
 	public void setup() {
-		Rainbowduino r = new Rainbowduino(this);
-		try {
-			r.initPort();
-		} catch (NoSerialPortFoundException e) {
-			e.printStackTrace();
-		}		
-
+		Rainbowduino r = new Rainbowduino(this);		
 		/*try {
-			r.initPort("dunno");
+			r.initPort(new ArrayList<Integer>());
 		} catch (NoSerialPortFoundException e) {
 			e.printStackTrace();
-		}*/	
+		}	*/	
+
+		try {
+			r.initPort("dunno", new ArrayList<Integer>());
+		} catch (NoSerialPortFoundException e) {
+			e.printStackTrace();
+		}/**/	
 		noLoop();
 	}
 	

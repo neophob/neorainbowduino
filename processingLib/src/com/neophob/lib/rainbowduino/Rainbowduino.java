@@ -23,11 +23,14 @@ Boston, MA  02111-1307  USA
 
 package com.neophob.lib.rainbowduino;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import processing.core.PApplet;
 import processing.serial.Serial;
+
+import com.neophob.lib.rainbowduino.NoSerialPortFoundException;
 
 /**
  * library to communicate with an arduino via serial port
@@ -46,9 +49,11 @@ public class Rainbowduino implements Runnable {
 	public final String VERSION = "1.2";
 
 	private static final byte START_OF_CMD = 0x01;
-	private static final byte CMD_PING = 0x04;
 	private static final byte CMD_SENDFRAME = 0x03;
+	private static final byte CMD_PING = 0x04;
+	private static final byte CMD_INIT_RAINBOWDUINO = 0x5;
 	private static final byte CMD_HEARTBEAT = 0x10;
+
 	private static final byte START_OF_DATA = 0x10;
 	private static final byte END_OF_DATA = 0x20;
 
@@ -163,40 +168,36 @@ public class Rainbowduino implements Runnable {
 		return (port != null);
 	}	
 
-	
-	/**
-	 * auto init serial port by default values
-	 */
-	public void initPort() throws NoSerialPortFoundException {
-		this.initPort(null, 0, false);
-	}
 
 	/**
+	 * auto init serial port by default values
 	 * 
-	 * @param useSimulator
+	 * @param rainbowduinoAddr a list with all i2c addr of rainbowduinos
 	 * @throws NoSerialPortFoundException
 	 */
-	public void initPort(boolean useSimulator) throws NoSerialPortFoundException {
-		this.initPort(null, 0, useSimulator);
+	public void initPort(List<Integer> rainbowduinoAddr) throws NoSerialPortFoundException {
+		this.initPort(null, 0, rainbowduinoAddr);
 	}
 
 	
 	/**
 	 * Auto init serial port with given baud rate
-	 * @param baud
+	 * @param baud rate
+	 * @param rainbowduinoAddr a list with all i2c addr of rainbowduinos
 	 */
-	public void initPort(int baud) throws NoSerialPortFoundException {
-		this.initPort(null, baud, false);
+	public void initPort(int baud, List<Integer> rainbowduinoAddr) throws NoSerialPortFoundException {
+		this.initPort(null, baud, rainbowduinoAddr);
 	}	
 
 	
 	/**
 	 * 
-	 * @param portName
+	 * @param portName device address
+	 * @param rainbowduinoAddr a list with all i2c addr of rainbowduinos
 	 * @throws NoSerialPortFoundException
 	 */
-	public void initPort(String portName) throws NoSerialPortFoundException {
-		this.initPort(portName, 0, false);
+	public void initPort(String portName, List<Integer> rainbowduinoAddr) throws NoSerialPortFoundException {
+		this.initPort(portName, 0, rainbowduinoAddr);
 	}	
 
 	
@@ -205,38 +206,38 @@ public class Rainbowduino implements Runnable {
 	 * No sensity checks
 	 * 
 	 */
-	public void initPort(String portName, int baud, boolean useSimulator) throws NoSerialPortFoundException {
+	public void initPort(String portName, int baud, List<Integer> rainbowduinoAddr) throws NoSerialPortFoundException {
+		String serialPortName="";
 		if(baud > 0) {
 			this.baud = baud;
 		}
 		
-		//this.useSimulator = useSimulator;
-		
 		if (portName!=null && !portName.trim().isEmpty()) {
 			//open specific port
 			log.log(Level.INFO,	"open port: {0}", portName);
-			openPort(portName);
+			serialPortName = portName;
+			openPort(portName, rainbowduinoAddr);
 		} else {
 			//try to find the port
 			String[] ports = Serial.list();
 			for (int i=0; port==null && i<ports.length; i++) {
 				log.log(Level.INFO,	"open port: {0}", ports[i]);
-				openPort(ports[i]);
+				try {
+					serialPortName = ports[i];
+					openPort(ports[i], rainbowduinoAddr);
+				//catch all, there are multiple exception to catch (NoSerialPortFoundException, PortInUseException...)
+				} catch (Exception e) {
+					// search next port...
+				}
+				
 			}
 		}
 		
-		if (port==null && !useSimulator) {
-			log.log(Level.WARNING,	"failed to open serial port!");
-			throw new NoSerialPortFoundException();
+		if (port==null) {
+			throw new NoSerialPortFoundException("Error: no serial port found!");
 		}
 		
-		if (useSimulator) {
-			//TODO msg if simulator and port used...
-			log.log(Level.INFO,	"use simulator");
-		} else {
-			log.log(Level.INFO,	"found serial port!");
-		}
-		
+		log.log(Level.INFO,	"found serial port: "+serialPortName);
 		
 	}
 	
@@ -248,7 +249,7 @@ public class Rainbowduino implements Runnable {
 	 * 
 	 * @param portName
 	 */
-	private void openPort(String portName) {
+	private void openPort(String portName, List<Integer> rainbowduinoAddr) throws NoSerialPortFoundException {
 		if (portName == null) {
 			return;
 		}
@@ -259,18 +260,30 @@ public class Rainbowduino implements Runnable {
 			if (ping((byte)0)) {
 				this.runner = new Thread(this);
 				this.runner.setName("ZZ Arduino Heartbeat Thread");
-				this.runner.start(); 	
+				this.runner.start();
+	
+				//send initial image to rainbowduinos
+				for (int i: rainbowduinoAddr) {
+					this.initRainbowduino((byte)i);					
+				}
+				
 				return;
 			}
 			log.log(Level.WARNING, "No response from port {0}", portName);
+			if (port != null) {
+				port.stop();        					
+			}
+			port = null;
+			throw new NoSerialPortFoundException("No response from port "+portName);
 		} catch (Exception e) {	
 			log.log(Level.WARNING, "Failed to open port {0}", portName);
+			if (port != null) {
+				port.stop();        					
+			}
+			port = null;
+			throw new NoSerialPortFoundException("Failed to open port "+portName+": "+e.getCause());
 		}
 		
-		if (port != null) {
-			port.stop();        					
-		}
-		port = null;
 	}
 
 
@@ -371,6 +384,30 @@ public class Rainbowduino implements Runnable {
 		}
 	}
 
+	/**
+	 * initialize an rainbowduino device
+	 * @param addr
+	 */
+	public synchronized void initRainbowduino(byte addr) {
+		//TODO stop if connection counter > n
+		//if (connectionErrorCounter>10000) {}
+		
+		byte cmdfull[] = new byte[6];
+		cmdfull[0] = START_OF_CMD;
+		cmdfull[1] = addr;
+		cmdfull[2] = 0;
+		cmdfull[3] = CMD_INIT_RAINBOWDUINO;
+		cmdfull[4] = START_OF_DATA;		
+		cmdfull[5] = END_OF_DATA;
+		
+		try {
+			port.write(cmdfull);	
+		} catch (Exception e) {
+			log.warning("Failed to send data to serial port! errorcnt: "+connectionErrorCounter);
+			connectionErrorCounter++;
+		}
+	}
+	
 	/**
 	 * get last error code from arduino
 	 * if the errorcode is between 100..109 - serial connection issue (pc-arduino issue)
