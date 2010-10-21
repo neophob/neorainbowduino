@@ -16,7 +16,20 @@ void setup()
   
   //initialize library
   rainbowduino = new Rainbowduino(this);
-  rainbowduino.initPort();
+
+  //create a list with i2c slave destination (=rainbowduinos)
+  List<Integer> i2cDest = new ArrayList<Integer>();
+  i2cDest.add(5);
+  i2cDest.add(6);
+  try {
+    rainbowduino.initPort(i2cDest);
+  } catch (Exception e) {
+    //if an error occours handle it here!
+    //we just print out the stacktrace and exit.
+    e.printStackTrace();
+    println("failed to initialize serial port - exit!");
+    exit();
+  }
   
   println("neorainbowduino version: "+rainbowduino.version());
   boolean ping = rainbowduino.ping((byte)0);
