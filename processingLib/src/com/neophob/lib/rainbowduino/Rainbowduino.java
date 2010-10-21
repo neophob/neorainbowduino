@@ -372,7 +372,11 @@ public class Rainbowduino implements Runnable {
 	}
 
 	/**
-	 * 
+	 * get last error code from arduino
+	 * if the errorcode is between 100..109 - serial connection issue (pc-arduino issue)
+	 * if the errorcode is < 100 it's a i2c lib error code (arduino-rainbowduino error)
+	 *    check http://arduino.cc/en/Reference/WireEndTransmission for more information
+	 *   
 	 * @return
 	 */
 	public int getArduinoErrorCounter() {
@@ -380,6 +384,10 @@ public class Rainbowduino implements Runnable {
 	}
 
 	/**
+	 * return the serial buffer size of the arduino
+	 * 
+	 * the buffer is by default 128 bytes - if the buffer is most of the
+	 * time almost full (>110 bytes) you probabely send too much serial data 
 	 * 
 	 * @return
 	 */
@@ -388,7 +396,8 @@ public class Rainbowduino implements Runnable {
 	}
 
 	/**
-	 * 
+	 * per default arduino update this library each 3s with statistic information
+	 * this value save the timestamp of the last message.
 	 * @return
 	 */
 	public long getArduinoHeartbeat() {
