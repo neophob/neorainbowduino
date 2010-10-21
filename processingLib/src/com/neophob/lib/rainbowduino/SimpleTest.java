@@ -1,6 +1,8 @@
 package com.neophob.lib.rainbowduino;
 
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import processing.core.PApplet;
 
@@ -11,23 +13,38 @@ import processing.core.PApplet;
  */
 public class SimpleTest extends PApplet {
 
+	Rainbowduino r;
+	
 	/**
 	 * 
 	 */
 	public void setup() {
-		Rainbowduino r = new Rainbowduino(this);		
-		/*try {
-			r.initPort(new ArrayList<Integer>());
+		r = new Rainbowduino(this);
+		List<Integer> list = new ArrayList<Integer>();
+		
+		frameRate(1);
+		  
+		list.add(5);list.add(6);
+		try {
+			r.initPort(list);
 		} catch (NoSerialPortFoundException e) {
 			e.printStackTrace();
-		}	*/	
+		}		
 
-		try {
+/*		try {
 			r.initPort("dunno", new ArrayList<Integer>());
 		} catch (NoSerialPortFoundException e) {
 			e.printStackTrace();
 		}/**/	
-		noLoop();
+	}
+	
+	public void draw() {  
+		    long lastHeatBeatTs = r.getArduinoHeartbeat();
+		    println(
+		        "updated: "+new Date(lastHeatBeatTs).toGMTString()+
+		        " Serial Buffer Size: "+r.getArduinoBufferSize()+
+		        " last error: "+r.getArduinoErrorCounter()
+		    );
 	}
 	
 	public static void main(String args[]) {

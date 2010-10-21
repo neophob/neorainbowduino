@@ -51,7 +51,7 @@ public class Rainbowduino implements Runnable {
 	private static final byte START_OF_CMD = 0x01;
 	private static final byte CMD_SENDFRAME = 0x03;
 	private static final byte CMD_PING = 0x04;
-	private static final byte CMD_INIT_RAINBOWDUINO = 0x5;
+	private static final byte CMD_INIT_RAINBOWDUINO = 0x05;
 	private static final byte CMD_HEARTBEAT = 0x10;
 
 	private static final byte START_OF_DATA = 0x10;
@@ -392,13 +392,14 @@ public class Rainbowduino implements Runnable {
 		//TODO stop if connection counter > n
 		//if (connectionErrorCounter>10000) {}
 		
-		byte cmdfull[] = new byte[6];
+		byte cmdfull[] = new byte[7];
 		cmdfull[0] = START_OF_CMD;
 		cmdfull[1] = addr;
-		cmdfull[2] = 0;
+		cmdfull[2] = 1;
 		cmdfull[3] = CMD_INIT_RAINBOWDUINO;
-		cmdfull[4] = START_OF_DATA;		
-		cmdfull[5] = END_OF_DATA;
+		cmdfull[4] = START_OF_DATA;
+		cmdfull[5] = 0;					//unused
+		cmdfull[6] = END_OF_DATA;
 		
 		try {
 			port.write(cmdfull);	
