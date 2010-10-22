@@ -19,6 +19,8 @@ void setup()
   List<Integer> i2cDest = new ArrayList<Integer>();
   i2cDest.add(6);
   try {
+    //let the library search all available serial ports and try to send
+    //the initialize image to all slaves
     rainbowduino.initPort(i2cDest);
   } catch (Exception e) {
     //if an error occours handle it here!
