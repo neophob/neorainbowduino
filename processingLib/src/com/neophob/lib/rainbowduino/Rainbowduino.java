@@ -33,8 +33,10 @@ import processing.serial.Serial;
 import com.neophob.lib.rainbowduino.NoSerialPortFoundException;
 
 /**
- * library to communicate with an arduino via serial port
- * the arduino control up to n rainbowduinos usin the i2c protocol
+ * library to communicate with an arduino via serial port<br>
+ * the arduino control up to n rainbowduinos using the i2c protocol
+ * 
+ * part of the neorainbowduino library
  * 
  * @author Michael Vogt / neophob.com
  *
