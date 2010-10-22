@@ -35,7 +35,7 @@ import com.neophob.lib.rainbowduino.NoSerialPortFoundException;
 /**
  * library to communicate with an arduino via serial port<br>
  * the arduino control up to n rainbowduinos using the i2c protocol
- * 
+ * <br><br>
  * part of the neorainbowduino library
  * 
  * @author Michael Vogt / neophob.com
@@ -45,11 +45,24 @@ public class Rainbowduino implements Runnable {
 
 	static Logger log = Logger.getLogger(Rainbowduino.class.getName());
 
-	public static int width = 8;
-	public static int height = width;
+	/**
+	 * number of leds horizontal<br>
+	 * TODO: should be dynamic, someday
+	 */
+	public static int NR_OF_LED_HORIZONTAL = 8;
 
-	public final String VERSION = "1.2";
+	/**
+	 * number of leds vertical<br>
+	 * TODO: should be dynamic, someday
+	 */
+	public static int NR_OF_LED_VERTICAL = NR_OF_LED_HORIZONTAL;
 
+	/** 
+	 * internal lib version
+	 */
+	public static final String VERSION = "1.2";
+
+	
 	private static final byte START_OF_CMD = 0x01;
 	private static final byte CMD_SENDFRAME = 0x03;
 	private static final byte CMD_PING = 0x04;
@@ -112,7 +125,7 @@ public class Rainbowduino implements Runnable {
 
 
 	/**
-	 * Create a new instance to communicate with the rainbowduino. Make sure to (auto)init the serial port, too 
+	 * Create a new instance to communicate with the rainbowduino. 
 	 * 
 	 * @param _app parent Applet
 	 */
@@ -122,7 +135,7 @@ public class Rainbowduino implements Runnable {
 	}
 
 	/**
-	 * 
+	 * clean up library
 	 */
 	public void dispose() {
 		runner = null;
@@ -162,8 +175,9 @@ public class Rainbowduino implements Runnable {
 		return VERSION;
 	}
 
-	
 	/**
+	 * return connection state of lib 
+	 * 
 	 * @return wheter rainbowudino is connected
 	 */
 	public boolean connected() {
@@ -291,9 +305,9 @@ public class Rainbowduino implements Runnable {
 
 
 	/**
+	 * send a serial ping command to the arduino board.
 	 * 
-	 * @return wheter ping was successfull
-	 * 
+	 * @return wheter ping was successfull (arduino reachable) or not
 	 */
 	public synchronized boolean ping(byte addr) {		
 		/*
@@ -387,8 +401,10 @@ public class Rainbowduino implements Runnable {
 	}
 
 	/**
-	 * initialize an rainbowduino device
-	 * @param addr
+	 * initialize an rainbowduino device - send the initial image to
+	 * the rainbowduino. check arduinoErrorCounter for any errors.
+	 * 
+	 * @param addr the i2c slave address of the rainbowduino
 	 */
 	public synchronized void initRainbowduino(byte addr) {
 		//TODO stop if connection counter > n
@@ -417,7 +433,7 @@ public class Rainbowduino implements Runnable {
 	 * if the errorcode is < 100 it's a i2c lib error code (arduino-rainbowduino error)
 	 *    check http://arduino.cc/en/Reference/WireEndTransmission for more information
 	 *   
-	 * @return
+	 * @return last error code from arduino
 	 */
 	public int getArduinoErrorCounter() {
 		return arduinoErrorCounter;
@@ -429,7 +445,7 @@ public class Rainbowduino implements Runnable {
 	 * the buffer is by default 128 bytes - if the buffer is most of the
 	 * time almost full (>110 bytes) you probabely send too much serial data 
 	 * 
-	 * @return
+	 * @return arduino filled serial buffer size 
 	 */
 	public int getArduinoBufferSize() {
 		return arduinoBufferSize;
@@ -438,7 +454,8 @@ public class Rainbowduino implements Runnable {
 	/**
 	 * per default arduino update this library each 3s with statistic information
 	 * this value save the timestamp of the last message.
-	 * @return
+	 * 
+	 * @return timestamp when the last heartbeat receieved. should be updated each 3s.
 	 */
 	public long getArduinoHeartbeat() {
 		return arduinoHeartbeat;
@@ -453,16 +470,16 @@ public class Rainbowduino implements Runnable {
 	 */
 	private static byte[] convertRgbToRainbowduino(int[] data) {
 		byte[] converted = new byte[3*8*4];
-		int[] r = new int[64];
-		int[] g = new int[64];
-		int[] b = new int[64];
+		int[] r = new int[NR_OF_LED_HORIZONTAL*NR_OF_LED_VERTICAL];
+		int[] g = new int[NR_OF_LED_HORIZONTAL*NR_OF_LED_VERTICAL];
+		int[] b = new int[NR_OF_LED_HORIZONTAL*NR_OF_LED_VERTICAL];
 		int tmp;
 		int ofs=0;
 		int dst=0;
 
 		//step#1: split up r/g/b and apply gammatab
-		for (int y=0; y<height; y++) {
-			for (int x=0; x<width; x++) {
+		for (int y=0; y<NR_OF_LED_VERTICAL; y++) {
+			for (int x=0; x<NR_OF_LED_HORIZONTAL; x++) {
 				//one int contains the rgb color
 				tmp = data[ofs++];
 				//the buffer on the rainbowduino takes GRB, not RGB
@@ -493,7 +510,7 @@ public class Rainbowduino implements Runnable {
 	}
 
 	/**
-	 * 
+	 * Sleep wrapper
 	 * @param ms
 	 */
 	private void sleep(int ms) {

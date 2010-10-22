@@ -7,8 +7,8 @@ import java.util.List;
 import processing.core.PApplet;
 
 /**
- * simply test class, only used to test the lib
- * 
+ * simply test class, only used to test the lib<br>
+ * <br>
  * part of the neorainbowduino library
  * 
  * @author Michael Vogt / neophob.com
