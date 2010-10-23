@@ -11,9 +11,6 @@ libraries to patch:
  				   #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
  	
-TODO: do the color convert (RGB to GRB) in processing lib!
-      convert two dimensional RainbowCMD array into flat array of 96 bytes
- 
 */
 
 
@@ -22,7 +19,7 @@ TODO: do the color convert (RGB to GRB) in processing lib!
 #include "Rainbow.h"
 
 extern unsigned char buffer[2][3][8][4];  //define Two Buffs (one for Display ,the other for receive data)
-extern unsigned char RainbowCMD[4][32];  //the glorious command structure array
+unsigned char imageBuffer[96];
 
 unsigned char line,level;
 
@@ -83,12 +80,10 @@ void loop() {
       return;
     }
   
-    for (byte b=1; b<4; b++) {
-      i=0;
-      while (Wire.available()>0 && i<32) { 
-        RainbowCMD[b][i]=Wire.receive();  //recieve whatever is available
-        i++;
-      }
+    i=0;
+    while (Wire.available()>0 && i<96) { 
+      imageBuffer[i]=Wire.receive();  //recieve whatever is available
+      i++;
     }
     
     //check footer
@@ -120,9 +115,9 @@ void swapBuffers() { // Swap Front with Back buffer
   //disable and enable interrupts does not improve image!
   //cli();  // disable interrupts
   if (bufFront==0) bufFront=1; 
-  else bufFront=0;
+    else bufFront=0;
   if (bufBack==0) bufBack=1; 
-  else bufBack=0;
+    else bufBack=0;
   //sei();  // enable interrupts
 
   while(bufCurr != bufFront) {    // Wait for display to change.
@@ -160,43 +155,24 @@ void receiveEvent(int numBytes) {
 
 //==============DISPSHOW========================================
 void DispshowFrame(void) {
-  unsigned char color,row,dots,correctcol,ofs;
+  unsigned char color,row,dots,ofs;
 
   swapBuffers();
 
+  ofs=0;
   for(color=0;color<3;color++) {
-    switch (color) //fixes the fact that the buffer needs GRB, not RGB
-    {
-    case 0:  //in frame Red
-      correctcol = 2;  //out green
-      break;
-    case 1:  //in frame Green
-      correctcol = 1; //out red
-      break;
-    case 2:  //in frame Blue
-      correctcol = 3; //out blue
-      break;
-    }
-
-    ofs=0;
     for (row=0;row<8;row++) {
       for (dots=0;dots<4;dots++) {
-        buffer[bufCurr][color][row][dots]=RainbowCMD[correctcol][ofs++];  //get byte info for two dots directly from command
+        //format: 32b G, 32b R, 32b B
+        buffer[bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
       }
     }
   }
 
-  //Buffprt++;  //increment buffer, will switch which one reads from and other writes to
-  //Buffprt&=1;
-  //  while((Buffprt+1)&1 == targetbuf) {    // Wait for display to change.
-  //  while(Buffprt == targetbuf) {    // Wait for display to change.
-  //    delayMicroseconds(10);
-  //  }
-
 }
 
 //==============================================================
-void shift_1_bit(unsigned char LS)  //shift 1 bit of  1 Byte color data into Shift register by clock
+void shift_1_bit(unsigned char LS)  //shift 1 bit of 1 Byte color data into Shift register by clock
 {
   if(LS)
   {

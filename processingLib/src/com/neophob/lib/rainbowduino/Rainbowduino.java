@@ -357,7 +357,7 @@ public class Rainbowduino implements Runnable {
 	}
 
 	/**
-	 * wrapper class to send a rgb image to the rainbowduino.
+	 * wrapper class to send a RGB image to the rainbowduino.
 	 * the rgb image gets converted to the rainbowduino compatible
 	 * "image format"
 	 * 
@@ -482,11 +482,11 @@ public class Rainbowduino implements Runnable {
 			for (int x=0; x<NR_OF_LED_HORIZONTAL; x++) {
 				//one int contains the rgb color
 				tmp = data[ofs++];
-				//the buffer on the rainbowduino takes GRB, not RGB
 				
-				r[dst] = gammaTab[(int) ((tmp>>16) & 255)];
-				g[dst] = gammaTab[(int) ((tmp>>8)  & 255)];
-				b[dst] = gammaTab[(int) ( tmp      & 255)];				
+				//the buffer on the rainbowduino takes GRB, not RGB				
+				g[dst] = gammaTab[(int) ((tmp>>16) & 255)];  //r
+				r[dst] = gammaTab[(int) ((tmp>>8)  & 255)];  //g
+				b[dst] = gammaTab[(int) ( tmp      & 255)];	 //b		
 				dst++;
 			}
 		}
