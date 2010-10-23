@@ -66,7 +66,7 @@ int send_initial_image(byte i2caddr) {
   int tail2 = (int)(tail);
   boolean useTail = (tail-(int)(tail))!=0;			
 
-  //buffer: 32b RED, 32b GREEN, 32b BLUE
+  //buffer layout: 32b RED, 32b GREEN, 32b BLUE
   int ofs=0;
   for (int i=0; i<tail2; i++) {
     serInStr[ofs++]=255;
@@ -122,6 +122,7 @@ void loop()
         errorCounter = send_initial_image(addr);
         break;
     default:
+    	//it must be an image, its size must be exactly 96 bytes
         if (sendlen!=96) {
           errorCounter=100;
           return;
@@ -168,20 +169,22 @@ uint8_t readCommand(byte *str)
   i = SERIAL_WAIT_TIME_IN_MS;
   while (Serial.available() < HEADER_SIZE-1) {   // wait for the rest
     delay(1); 
-    if( i-- == 0 ) {
+    if (i-- == 0) {
       errorCounter=102;
       return 0;        // get out if takes too long
     }
   }
-  for (i=1; i<HEADER_SIZE; i++)
+  for (i=1; i<HEADER_SIZE; i++) {
     str[i] = Serial.read();       // fill it up
+  }
   
-  //check sendlen
+// --- START HEADER CHECK  
+  //check sendlen, TODO: its possible that sendlen is 0!
   sendlen = str[2];
-  if( sendlen == 0 ) {
+/*  if( sendlen == 0 ) {
     errorCounter=103;
     return 0;
-  }
+  }*/
   
   //check if data is correct, 0x10 = START_OF_DATA
   b = str[4];
@@ -189,6 +192,8 @@ uint8_t readCommand(byte *str)
     errorCounter=104;
     return 0;
   }
+// --- END HEADER CHECK
+
   
 //read data  
   i = SERIAL_WAIT_TIME_IN_MS;
@@ -201,8 +206,9 @@ uint8_t readCommand(byte *str)
     }
   }
 
-  for (i=HEADER_SIZE; i<HEADER_SIZE+sendlen+1; i++) 
+  for (i=HEADER_SIZE; i<HEADER_SIZE+sendlen+1; i++) {
     str[i] = Serial.read();       // fill it up
+  }
 
   //check if data is correct, 0x20 = END_OF_DATA
   b = str[HEADER_SIZE+sendlen];
@@ -210,6 +216,7 @@ uint8_t readCommand(byte *str)
     errorCounter=106;
     return 0;
   }
+  
   //return data size (without meta data)
   return sendlen;
 }

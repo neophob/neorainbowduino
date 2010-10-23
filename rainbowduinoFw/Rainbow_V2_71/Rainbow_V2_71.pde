@@ -10,6 +10,10 @@ libraries to patch:
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
  				   #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
+ 	
+TODO: do the color convert (RGB to GRB) in processing lib!
+      convert two dimensional RainbowCMD array into flat array of 96 bytes
+ 
 */
 
 
@@ -62,10 +66,10 @@ void loop() {
   uint8_t b;
   delayMicroseconds(10);
   
-  //check if buffer is filled
-  if (readI2c>97) {
-    readI2c=0;
-    //read header, wait until we get a START__OF_DATA or queue is empty
+  //check if buffer is filled, 96b image + 1b start marker + 1b end marker = 98b 
+  if (readI2c>97) { 
+    readI2c-=98;
+    //read header, wait until we get a START_OF_DATA or queue is empty
     i=0;
     while (Wire.available()>0 && i==0) {
       b = Wire.receive();
@@ -75,7 +79,7 @@ void loop() {
     }
     
     if (i==0) {
-      //error
+      //error, missing START_OF_DATA marker
       return;
     }
   
