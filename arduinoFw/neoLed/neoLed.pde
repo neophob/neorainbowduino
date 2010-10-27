@@ -2,19 +2,22 @@
 arduino serial-i2c-gateway, by michael vogt / neophob.com 2010
 published as i-dont-give-a-shit-about-any-license
 
+based on blinkm firmware by thingM and
+"daft punk" firmware by Scott C / ThreeFN 
+
 needed libraries:
  -MsTimer2 (http://www.arduino.cc/playground/Main/MsTimer2)
  
 libraries to patch:
  Wire: 
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
- 				   #define TWI_BUFFER_LENGTH 98 (was 32)
+                       #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
 */
 
 #include <MsTimer2.h>
 #include "Wire.h"
-#include "BlinkM_funcs.h"
+#include "WProgram.h"
 
 #define BAUD_RATE 57600
 //115200
@@ -31,9 +34,13 @@ libraries to patch:
 
 #define SERIAL_WAIT_TIME_IN_MS 20
 
+//I2C definitions
+#define START_OF_DATA 0x10
+#define END_OF_DATA 0x20
+
 //this should match RX_BUFFER_SIZE from HardwareSerial.cpp
 byte serInStr[128];  // array that will hold the serial input string
-byte errorCounter;
+volatile byte errorCounter;
 byte send[4];
 
 //send serial reply to processing lib
@@ -131,6 +138,17 @@ void loop()
         break;
   }
     
+}
+
+
+
+//send data via i2c to a client
+static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
+    Wire.beginTransmission(addr);
+    Wire.send(START_OF_DATA);
+    Wire.send(cmd, 96);
+    Wire.send(END_OF_DATA);
+    return Wire.endTransmission();
 }
 
 
