@@ -13,10 +13,7 @@ libraries to patch:
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
                        #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
- 
- 
- TODO: add maybe i2c scanner (http://todbot.com/arduino/sketches/I2CScanner/I2CScanner.pde)
- 	
+  	
 */
 
 
@@ -31,7 +28,7 @@ only place that this is likely to occur is in sections of code associated with i
 interrupt service routine.
 */
 extern unsigned char buffer[2][3][8][4];  //define Two Buffs (one for Display ,the other for receive data)
-unsigned char imageBuffer[96];
+unsigned char imageBuffer[96];            //buffer used to read data from i2c bus
 
 //volatile 
 byte line,level;
@@ -58,8 +55,8 @@ void setup() {
   bufCurr = 0;
   swapNow = 0; 
 
-  Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus (address optional for master) 
-  Wire.onReceive(receiveEvent); // define the receive function for receiving data from master
+  Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus as slave
+  Wire.onReceive(receiveEvent);   // define the receive function for receiving data from master
 
   //calculate: 64(256-GAMMA)/16000000 = x;  
   //gamma 200(0xc8): 0.000224  -> flimmert
@@ -70,9 +67,10 @@ void setup() {
   //gamma 250(0xfa): 0.000024  -> does not work
   //10kHz resolution
   FlexiTimer2::set(1, 0.0001, displayNextLine);
-  FlexiTimer2::start();
+  FlexiTimer2::start();                            //start interrupt code
 }
 
+//the mainloop - try to fetch data from the i2c bus and copy it into our buffer
 void loop() {
   uint8_t b;
   delayMicroseconds(10);
@@ -106,8 +104,9 @@ void loop() {
       b = Wire.receive();      
     }
     
+    //if the receieved data looks good - copy it into backBuffer
     if (b == END_OF_DATA) {
-      DispshowFrame();
+      DispshowFrame();        
     } else {
       //error, try to read data until eod marker if possible
       while (Wire.available()>0 && i==0) {
@@ -134,6 +133,8 @@ void receiveEvent(int numBytes) {
 
 
 //==============DISPSHOW========================================
+
+//copy data from the i2c bus into backbuffer and set the swapNow flag
 void DispshowFrame(void) {
   unsigned char color,row,dots,ofs;
 
@@ -152,7 +153,7 @@ void DispshowFrame(void) {
 
 //============INTERRUPTS======================================
 
-//shift out led colors
+//shift out led colors and swap buffer if needed (back buffer and front buffer)
 void displayNextLine() {
   flash_next_line(line, level);  // scan the next line in LED matrix level by level.
   line++;
@@ -162,17 +163,16 @@ void displayNextLine() {
     level++;
     if(level>15) {
       level=0;
-      //SWAP buffer
+      //SWAP buffer if requested
       if (swapNow==1) {
         bufCurr = !bufCurr;
       }
-//      bufCurr = bufFront;       // do the actual swapping, synced with display refresh.
     }
   }
 }
 
-void flash_next_line(unsigned char line,unsigned char level) // scan one line
-{
+// scan one line
+void flash_next_line(unsigned char line,unsigned char level) {
   disable_oe;
   close_all_line;
   //open_line(line);
@@ -189,8 +189,8 @@ void flash_next_line(unsigned char line,unsigned char level) // scan one line
   enable_oe;
 }
 
-void shift_24_bit(unsigned char line, unsigned char level)   // display one line by the color level in buff
-{
+// display one line by the color level in buff
+void shift_24_bit(unsigned char line, unsigned char level) {
   unsigned char color,row,data0,data1;
   le_high;
   for (color=0;color<3;color++)//GRB
@@ -199,24 +199,7 @@ void shift_24_bit(unsigned char line, unsigned char level)   // display one line
     {
       data1=buffer[bufCurr][color][line][row]&0x0f;
       data0=buffer[bufCurr][color][line][row]>>4;
-/*
-      if(data0>level)   //gray scale,0x0f aways light
-      {
-        shift_1_bit(1);
-      }
-      else
-      {
-        shift_1_bit(0);
-      }
 
-      if(data1>level)
-      {
-        shift_1_bit(1);
-      }
-      else
-      {
-        shift_1_bit(0);
-      }*/
       if(data0>level) {    //gray scale, 0x0f aways light (original comment, not sure what it means)
         shift_data_1;
         clk_rising;
@@ -237,22 +220,7 @@ void shift_24_bit(unsigned char line, unsigned char level)   // display one line
   le_low;
 }
 
-
-//==============================================================
-/*void shift_1_bit(unsigned char LS)  //shift 1 bit of 1 Byte color data into Shift register by clock
-{
-  if(LS)
-  {
-    shift_data_1;
-  }
-  else
-  {
-    shift_data_0;
-  }
-  clk_rising;
-}
-
-
+/*
 //==============================================================
 void open_line(unsigned char line)     // open the scaning line 
 {

@@ -13,6 +13,9 @@ libraries to patch:
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
                        #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
+  
+TODO: add maybe i2c scanner (http://todbot.com/arduino/sketches/I2CScanner/I2CScanner.pde)
+
 */
 
 #include <MsTimer2.h>
