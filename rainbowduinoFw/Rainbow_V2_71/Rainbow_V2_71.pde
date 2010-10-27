@@ -13,6 +13,9 @@ libraries to patch:
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
                        #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
+ 
+ 
+ TODO: add maybe i2c scanner (http://todbot.com/arduino/sketches/I2CScanner/I2CScanner.pde)
  	
 */
 
@@ -33,9 +36,9 @@ unsigned char imageBuffer[96];
 //volatile 
 byte line,level;
 
-//TODO: buffer swap recheck
-byte bufCurr;
-byte bufFront, bufBack;                // used for handling the buffers
+//read from bufCurr, write to !bufCurr
+//volatile mess everything up now, why?
+byte bufCurr, swapNow;
 byte readI2c,i;
 
 #define START_OF_DATA 0x10
@@ -52,9 +55,8 @@ void setup() {
   level = 0;
   line = 0;
 
-  bufFront = 0;
-  bufBack = 1;
-  bufCurr = 0;    
+  bufCurr = 0;
+  swapNow = 0;
 
   Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus (address optional for master) 
   Wire.onReceive(receiveEvent); // define the receive function for receiving data from master
@@ -119,24 +121,6 @@ void loop() {
   }
 }
 
-
-void swapBuffers() { // Swap Front with Back buffer
-  // bufFront = !bufFront;
-  // bufBack = !bufBack;
-
-  //disable and enable interrupts does not improve image!
-  //cli();  // disable interrupts
-  if (bufFront==0) bufFront=1; 
-    else bufFront=0;
-  if (bufBack==0) bufBack=1; 
-    else bufBack=0;
-  //sei();  // enable interrupts
-
-  while(bufCurr != bufFront) {    // Wait for display to change.
-    delayMicroseconds(5);
-  }
-}
-
 //============INTERRUPTS======================================
 
 //shift out led colors
@@ -150,7 +134,9 @@ void displayNextLine() {
     if(level>15) {
       level=0;
       //SWAP buffer
-      bufCurr = bufFront;       // do the actual swapping, synced with display refresh.
+      if (swapNow==1) {
+        bufCurr = !bufCurr;			// do the actual swapping, synced with display refresh.
+      }
     }
   }
 }
@@ -169,18 +155,16 @@ void receiveEvent(int numBytes) {
 void DispshowFrame(void) {
   unsigned char color,row,dots,ofs;
 
-  swapBuffers();
-
   ofs=0;
   for(color=0;color<3;color++) {
     for (row=0;row<8;row++) {
       for (dots=0;dots<4;dots++) {
         //format: 32b G, 32b R, 32b B
-        buffer[bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
+        buffer[!bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
       }
     }
   }
-
+  swapNow = 1;			//set the flag to swap buffers
 }
 
 //==============================================================
