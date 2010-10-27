@@ -2,13 +2,16 @@
 arduino serial-i2c-gateway, by michael vogt / neophob.com 2010
 published as i-dont-give-a-shit-about-any-license
 
+based on blinkm firmware by thingM and
+"daft punk" firmware by Scott C / ThreeFN 
+
 needed libraries:
  -FlexiTimer (http://github.com/wimleers/flexitimer2)
  
 libraries to patch:
  Wire: 
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
- 				   #define TWI_BUFFER_LENGTH 98 (was 32)
+                       #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
  	
 */
@@ -18,12 +21,21 @@ libraries to patch:
 #include <FlexiTimer2.h>
 #include "Rainbow.h"
 
+/*
+A variable should be declared volatile whenever its value can be changed by something beyond the control 
+of the code section in which it appears, such as a concurrently executing thread. In the Arduino, the 
+only place that this is likely to occur is in sections of code associated with interrupts, called an 
+interrupt service routine.
+*/
 extern unsigned char buffer[2][3][8][4];  //define Two Buffs (one for Display ,the other for receive data)
 unsigned char imageBuffer[96];
 
-unsigned char line,level;
+//volatile 
+byte line,level;
 
-byte bufFront, bufBack, bufCurr;                // used for handling the buffers
+//TODO: buffer swap recheck
+byte bufCurr;
+byte bufFront, bufBack;                // used for handling the buffers
 byte readI2c,i;
 
 #define START_OF_DATA 0x10
