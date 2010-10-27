@@ -27,14 +27,14 @@
 #define shift_data_1     {SH_PORT_SDI|=SH_BIT_SDI;}
 #define shift_data_0     {SH_PORT_SDI&=~SH_BIT_SDI;}
 //============================================
-#define open_line0	{PORTB=0x04;}
+/*#define open_line0	{PORTB=0x04;}
 #define open_line1	{PORTB=0x02;}
 #define open_line2	{PORTB=0x01;}
 #define open_line3	{PORTD=0x80;}
 #define open_line4	{PORTD=0x40;}
 #define open_line5	{PORTD=0x20;}
 #define open_line6	{PORTD=0x10;}
-#define open_line7	{PORTD=0x08;}
+#define open_line7	{PORTD=0x08;}*/
 #define close_all_line	{PORTD&=~0xf8;PORTB&=~0x07;}
 
 #endif

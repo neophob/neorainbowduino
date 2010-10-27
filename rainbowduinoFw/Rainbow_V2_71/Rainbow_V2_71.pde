@@ -56,7 +56,7 @@ void setup() {
   line = 0;
 
   bufCurr = 0;
-  swapNow = 0;
+  swapNow = 0; 
 
   Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus (address optional for master) 
   Wire.onReceive(receiveEvent); // define the receive function for receiving data from master
@@ -121,25 +121,7 @@ void loop() {
   }
 }
 
-//============INTERRUPTS======================================
 
-//shift out led colors
-void displayNextLine() {
-  flash_next_line(line, level);  // scan the next line in LED matrix level by level.
-  line++;
-  if(line>7)        // when have scaned all LED's, back to line 0 and add the level
-  {
-    line=0;
-    level++;
-    if(level>15) {
-      level=0;
-      //SWAP buffer
-      if (swapNow==1) {
-        bufCurr = !bufCurr;			// do the actual swapping, synced with display refresh.
-      }
-    }
-  }
-}
 
 //=============HANDLERS======================================
 
@@ -164,23 +146,31 @@ void DispshowFrame(void) {
       }
     }
   }
-  swapNow = 1;			//set the flag to swap buffers
+  swapNow = 1;
 }
 
-//==============================================================
-void shift_1_bit(unsigned char LS)  //shift 1 bit of 1 Byte color data into Shift register by clock
-{
-  if(LS)
+
+//============INTERRUPTS======================================
+
+//shift out led colors
+void displayNextLine() {
+  flash_next_line(line, level);  // scan the next line in LED matrix level by level.
+  line++;
+  if(line>7)        // when have scaned all LED's, back to line 0 and add the level
   {
-    shift_data_1;
+    line=0;
+    level++;
+    if(level>15) {
+      level=0;
+      //SWAP buffer
+      if (swapNow==1) {
+        bufCurr = !bufCurr;
+      }
+//      bufCurr = bufFront;       // do the actual swapping, synced with display refresh.
+    }
   }
-  else
-  {
-    shift_data_0;
-  }
-  clk_rising;
 }
-//==============================================================
+
 void flash_next_line(unsigned char line,unsigned char level) // scan one line
 {
   disable_oe;
@@ -188,18 +178,17 @@ void flash_next_line(unsigned char line,unsigned char level) // scan one line
   //open_line(line);
   //TODO    
   if(line < 3) {    // Open the line and close others
-   PORTB  = (PINB & ~0x07) | 0x04 >> line;
-   PORTD  = (PIND & ~0xF8);
-   } else {
-   PORTB  = (PINB & ~0x07);
-   PORTD  = (PIND & ~0xF8) | 0x80 >> (line - 3);
+     PORTB  = (PINB & ~0x07) | 0x04 >> line;
+     PORTD  = (PIND & ~0xF8);
+  } else {
+     PORTB  = (PINB & ~0x07);
+     PORTD  = (PIND & ~0xF8) | 0x80 >> (line - 3);
    }
    
   shift_24_bit(line,level);
   enable_oe;
 }
 
-//==============================================================
 void shift_24_bit(unsigned char line, unsigned char level)   // display one line by the color level in buff
 {
   unsigned char color,row,data0,data1;
@@ -238,7 +227,7 @@ void shift_24_bit(unsigned char line, unsigned char level)   // display one line
       
       if(data1>level) {
         shift_data_1;
-        clk_rising;
+        clk_rising;        //TODO: document
       } else {
         shift_data_0;
         clk_rising;
@@ -248,6 +237,20 @@ void shift_24_bit(unsigned char line, unsigned char level)   // display one line
   le_low;
 }
 
+
+//==============================================================
+/*void shift_1_bit(unsigned char LS)  //shift 1 bit of 1 Byte color data into Shift register by clock
+{
+  if(LS)
+  {
+    shift_data_1;
+  }
+  else
+  {
+    shift_data_0;
+  }
+  clk_rising;
+}
 
 
 //==============================================================
@@ -297,6 +300,6 @@ void open_line(unsigned char line)     // open the scaning line
     }
   }
 }
-
+*/
 
 
