@@ -48,11 +48,11 @@ extern "C" {
 //this should match RX_BUFFER_SIZE from HardwareSerial.cpp
 byte serInStr[128]; 	 				 // array that will hold the serial input string
 
-volatile byte errorCounter;
-byte send[4];
+volatile byte g_errorCounter;
 
 //send serial reply to processing lib
 static void sendSerialResponse(byte command, byte param) {
+  byte send[4];
   send[0]=CMD_START_BYTE;
   send[1]=command;
   send[2]=param;
@@ -64,8 +64,8 @@ static void sendSerialResponse(byte command, byte param) {
 //save the error counter on the host side!
 void heartbeat() {
   digitalWrite(13, HIGH);
-  sendSerialResponse(CMD_HEARTBEAT, errorCounter);
-  errorCounter=0;
+  sendSerialResponse(CMD_HEARTBEAT, g_errorCounter);
+  g_errorCounter=0;
   digitalWrite(13, LOW);
 }
 
@@ -100,13 +100,13 @@ int send_initial_image(byte i2caddr) {
 void scanI2CBus() {
   //disable interrupts!
   cli();
-  send[0]=CMD_START_BYTE;
-  send[1]=CMD_SCAN_I2C_BUS;
-  Serial.write(send, 2);
-
+  
+  Serial.write(CMD_START_BYTE);
+  Serial.write(CMD_SCAN_I2C_BUS);
+  
   byte rc;
   byte data = 0; // not used, just an address to feed to twi_writeTo()
-  for( byte addr = START_I2C_SCAN; addr <= END_I2C_SCAN; addr++ ) {
+  for (byte addr = START_I2C_SCAN; addr <= END_I2C_SCAN; addr++ ) {
   //rc 0 = success
     digitalWrite(13, HIGH);
     rc = twi_writeTo(addr, &data, 0, 1);
@@ -138,7 +138,7 @@ void setup() {
 void loop()
 {
   //read the serial port and create a string out of what you read
-    errorCounter=0;
+  g_errorCounter=0;
 
   // see if we got a proper command string yet
   if (readCommand(serInStr) == 0) {
@@ -161,7 +161,7 @@ void loop()
         break;
     case CMD_INIT_RAINBOWDUINO:
         //send initial image to rainbowduino
-        errorCounter = send_initial_image(addr);
+        g_errorCounter = send_initial_image(addr);
         break;
     case CMD_SCAN_I2C_BUS:
     	scanI2CBus();   
@@ -169,10 +169,10 @@ void loop()
     default:
     	//it must be an image, its size must be exactly 96 bytes
         if (sendlen!=96) {
-          errorCounter=100;
+          g_errorCounter=100;
           return;
         }
-        errorCounter = BlinkM_sendBuffer(addr, cmd);    
+        g_errorCounter = BlinkM_sendBuffer(addr, cmd);    
         break;
   }
     
@@ -180,7 +180,7 @@ void loop()
 
 
 
-//send data via i2c to a client
+//send data via I2C to a client
 static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
     Wire.beginTransmission(addr);
     Wire.send(START_OF_DATA);
@@ -217,7 +217,7 @@ uint8_t readCommand(byte *str)
   }
 
   if (i==0) {
-    errorCounter=101;
+    g_errorCounter=101;
     return 0;    
   }
 
@@ -226,7 +226,7 @@ uint8_t readCommand(byte *str)
   while (Serial.available() < HEADER_SIZE-1) {   // wait for the rest
     delay(1); 
     if (i-- == 0) {
-      errorCounter=102;
+      g_errorCounter=102;
       return 0;        // get out if takes too long
     }
   }
@@ -245,7 +245,7 @@ uint8_t readCommand(byte *str)
   //check if data is correct, 0x10 = START_OF_DATA
   b = str[4];
   if ( b != 0x10 ) {
-    errorCounter=104;
+    g_errorCounter=104;
     return 0;
   }
 // --- END HEADER CHECK
@@ -257,7 +257,7 @@ uint8_t readCommand(byte *str)
   while (Serial.available() < sendlen+1) {
     delay(1); 
     if( i-- == 0 ) {
-      errorCounter=105;
+      g_errorCounter=105;
       return 0;
     }
   }
@@ -269,7 +269,7 @@ uint8_t readCommand(byte *str)
   //check if data is correct, 0x20 = END_OF_DATA
   b = str[HEADER_SIZE+sendlen];
   if( b != 0x20 ) {
-    errorCounter=106;
+    g_errorCounter=106;
     return 0;
   }
   
