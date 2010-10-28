@@ -33,8 +33,10 @@ unsigned char imageBuffer[96];            //buffer used to read data from i2c bu
 volatile byte g_line,g_level;
 
 //read from bufCurr, write to !bufCurr
-//volatile mess everything up now, why?
-volatile byte g_bufCurr, g_swapNow;
+
+//volatile   //the display is flickerling, brightness is reduced
+byte g_bufCurr;
+volatile byte g_swapNow;
 byte g_readI2c;
 
 #define START_OF_DATA 0x10
@@ -57,15 +59,8 @@ void setup() {
   Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus as slave
   Wire.onReceive(receiveEvent);   // define the receive function for receiving data from master
 
-  //calculate: 64(256-GAMMA)/16000000 = x;  
-  //gamma 200(0xc8): 0.000224  -> flimmert
-  //gamma 215(0xd7): 0.000164  -> leichtes flimmern
-  //gamma 221(0xdd): 0.00014   -> original
-  //gamma 231(0xe7): 0.0001    -> original 
-  //gamma 240(0xf0): 0.000064  -> wie original
-  //gamma 250(0xfa): 0.000024  -> does not work
-  //10kHz resolution
-  FlexiTimer2::set(1, 0.0001, displayNextLine);
+  //10kHz resolution (PWM)
+  FlexiTimer2::set(1, 1.0f/10000.0f, displayNextLine);
   FlexiTimer2::start();                            //start interrupt code
 }
 
@@ -73,7 +68,7 @@ void setup() {
 void loop() {
   uint8_t b, i;
   delayMicroseconds(10);
-  
+
   //check if buffer is filled, 96b image + 1b start marker + 1b end marker = 98b 
   if (g_readI2c>97) { 
     g_readI2c-=98;
@@ -106,7 +101,7 @@ void loop() {
     //if the receieved data looks good - copy it into backBuffer
     if (b == END_OF_DATA) {
       DispshowFrame();        
-    } else {
+    } /*else {
       //error, try to read data until eod marker if possible
       while (Wire.available()>0 && i==0) {
         b = Wire.receive();
@@ -114,8 +109,7 @@ void loop() {
           i=1;
         }
       }
-
-    }
+    }*/
   }
 }
 
@@ -135,10 +129,15 @@ void receiveEvent(int numBytes) {
 
 //copy data from the i2c bus into backbuffer and set the g_swapNow flag
 void DispshowFrame(void) {
-  unsigned char color,row,dots,ofs;
-
+  byte color,row,dots,ofs;
+  
+  //do not fill buffer if we still wait for the blit!
+  if (g_swapNow==1) {
+    return;
+  }
+  
   ofs=0;
-  for(color=0;color<3;color++) {
+  for (color=0;color<3;color++) {
     for (row=0;row<8;row++) {
       for (dots=0;dots<4;dots++) {
         //format: 32b G, 32b R, 32b B
@@ -146,6 +145,8 @@ void DispshowFrame(void) {
       }
     }
   }
+  
+  //set the 'we need to blit' flag
   g_swapNow = 1;
 }
 
@@ -154,7 +155,7 @@ void DispshowFrame(void) {
 
 //shift out led colors and swap buffer if needed (back buffer and front buffer)
 void displayNextLine() {
-  flash_next_line(g_line, g_level);  // scan the next line in LED matrix level by level.
+  flash_next_line();  // scan the next line in LED matrix level by level.
   g_line++;
   if(g_line>7)        // when have scaned all LED's, back to line 0 and add the level
   {
@@ -172,37 +173,35 @@ void displayNextLine() {
 }
 
 // scan one line
-//TODO: are local variables needed here? or may we use global?
-void flash_next_line(unsigned char line,unsigned char level) {
+void flash_next_line() {
   disable_oe;
   close_all_line;
   //open_line(line);
   //TODO    
-  if(line < 3) {    // Open the line and close others
-     PORTB  = (PINB & ~0x07) | 0x04 >> line;
+  if(g_line < 3) {    // Open the line and close others
+     PORTB  = (PINB & ~0x07) | 0x04 >> g_line;
      PORTD  = (PIND & ~0xF8);
   } else {
      PORTB  = (PINB & ~0x07);
-     PORTD  = (PIND & ~0xF8) | 0x80 >> (line - 3);
+     PORTD  = (PIND & ~0xF8) | 0x80 >> (g_line - 3);
    }
    
-  shift_24_bit(line,level);
+  shift_24_bit();
   enable_oe;
 }
 
 // display one line by the color level in buff
-//TODO: are local variables needed here? or may we use global?
-void shift_24_bit(unsigned char line, unsigned char level) {
+void shift_24_bit() {
   unsigned char color,row,data0,data1;
   le_high;
   for (color=0;color<3;color++)//GRB
   {
     for (row=0;row<4;row++)
     {
-      data1=buffer[g_bufCurr][color][line][row]&0x0f;
-      data0=buffer[g_bufCurr][color][line][row]>>4;
+      data1=buffer[g_bufCurr][color][g_line][row]&0x0f;
+      data0=buffer[g_bufCurr][color][g_line][row]>>4;
 
-      if(data0>level) {    //gray scale, 0x0f aways light (original comment, not sure what it means)
+      if(data0>g_level) {    //gray scale, 0x0f aways light (original comment, not sure what it means)
         shift_data_1;
         clk_rising;
       } else {
@@ -210,7 +209,7 @@ void shift_24_bit(unsigned char line, unsigned char level) {
         clk_rising;
       }
       
-      if(data1>level) {
+      if(data1>g_level) {
         shift_data_1;
         clk_rising;        //TODO: document
       } else {
@@ -271,5 +270,4 @@ void open_line(unsigned char line)     // open the scaning line
   }
 }
 */
-
 
