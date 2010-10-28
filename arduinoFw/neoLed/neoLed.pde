@@ -13,14 +13,16 @@ libraries to patch:
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
                        #define TWI_BUFFER_LENGTH 98 (was 32)
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
-  
-TODO: add maybe i2c scanner (http://todbot.com/arduino/sketches/I2CScanner/I2CScanner.pde)
 
 */
 
 #include <MsTimer2.h>
 #include "Wire.h"
 #include "WProgram.h"
+
+extern "C" { 
+#include "utility/twi.h"  // from Wire library, so we can do bus scanning
+}
 
 #define BAUD_RATE 57600
 //115200
@@ -31,9 +33,8 @@ TODO: add maybe i2c scanner (http://todbot.com/arduino/sketches/I2CScanner/I2CSc
 #define CMD_START_BYTE  0x01
 #define CMD_PING  0x04
 #define CMD_INIT_RAINBOWDUINO 0x05
+#define CMD_SCAN_I2C_BUS 0x06
 #define CMD_HEARTBEAT 0x10
-
-#define REPLY_OK          1   //followed by return params
 
 #define SERIAL_WAIT_TIME_IN_MS 20
 
@@ -41,14 +42,18 @@ TODO: add maybe i2c scanner (http://todbot.com/arduino/sketches/I2CScanner/I2CSc
 #define START_OF_DATA 0x10
 #define END_OF_DATA 0x20
 
+#define START_I2C_SCAN 0
+#define END_I2C_SCAN 127
+
 //this should match RX_BUFFER_SIZE from HardwareSerial.cpp
-byte serInStr[128];  // array that will hold the serial input string
+byte serInStr[128]; 	 				 // array that will hold the serial input string
+
 volatile byte errorCounter;
 byte send[4];
 
 //send serial reply to processing lib
 static void sendSerialResponse(byte command, byte param) {
-  send[0]=REPLY_OK;
+  send[0]=CMD_START_BYTE;
   send[1]=command;
   send[2]=param;
   send[3]=Serial.available();
@@ -67,7 +72,6 @@ void heartbeat() {
 //send an white image to the target rainbowduino
 //contains red led's which describe its i2c addr
 int send_initial_image(byte i2caddr) {
-  
   //clear whole buffer
   memset(serInStr, CLEARCOL, 128);
 
@@ -88,10 +92,38 @@ int send_initial_image(byte i2caddr) {
   return BlinkM_sendBuffer(i2caddr, serInStr);
 }
 
+// Scan the I2C bus between addresses from_addr and to_addr.
+// On each address, call the callback function with the address and result.
+// If result==0, address was found, otherwise, address wasn't found
+// (can use result to potentially get other status on the I2C bus, see twi.c)
+// Assumes Wire.begin() has already been called
+void scanI2CBus() {
+  //disable interrupts!
+  cli();
+  send[0]=CMD_START_BYTE;
+  send[1]=CMD_SCAN_I2C_BUS;
+  Serial.write(send, 2);
+
+  byte rc;
+  byte data = 0; // not used, just an address to feed to twi_writeTo()
+  for( byte addr = START_I2C_SCAN; addr <= END_I2C_SCAN; addr++ ) {
+  //rc 0 = success
+    digitalWrite(13, HIGH);
+    rc = twi_writeTo(addr, &data, 0, 1);
+    digitalWrite(13, LOW);
+    if (rc==0) {
+    	Serial.write(addr);
+    }
+  }
+  
+  //enable interrupts
+  sei();
+}
+
 
 void setup() {
   Wire.begin(); // join i2c bus (address optional for master)
-
+  
   pinMode(13, OUTPUT);
 
   //im your slave and wait for your commands, master!
@@ -131,6 +163,9 @@ void loop()
         //send initial image to rainbowduino
         errorCounter = send_initial_image(addr);
         break;
+    case CMD_SCAN_I2C_BUS:
+    	scanI2CBus();   
+    	break;
     default:
     	//it must be an image, its size must be exactly 96 bytes
         if (sendlen!=96) {
