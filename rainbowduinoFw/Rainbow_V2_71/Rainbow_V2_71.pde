@@ -30,30 +30,29 @@ interrupt service routine.
 extern unsigned char buffer[2][3][8][4];  //define Two Buffs (one for Display ,the other for receive data)
 unsigned char imageBuffer[96];            //buffer used to read data from i2c bus
 
-//volatile 
-byte line,level;
+volatile byte g_line,g_level;
 
 //read from bufCurr, write to !bufCurr
 //volatile mess everything up now, why?
-byte bufCurr, swapNow;
-byte readI2c,i;
+volatile byte g_bufCurr, g_swapNow;
+byte g_readI2c;
 
 #define START_OF_DATA 0x10
 #define END_OF_DATA 0x20
 
 void setup() {
-  readI2c=0;
+  g_readI2c=0;
   DDRD=0xff;        // Configure ports (see http://www.arduino.cc/en/Reference/PortManipulation): digital pins 0-7 as OUTPUT
   DDRC=0xff;        // analog pins 0-5 as OUTPUT
   DDRB=0xff;        // digital pins 8-13 as OUTPUT
   PORTD=0;          // Configure ports data register (see link above): digital pins 0-7 as READ
   PORTB=0;          // digital pins 8-13 as READ
 
-  level = 0;
-  line = 0;
+  g_level = 0;
+  g_line = 0;
 
-  bufCurr = 0;
-  swapNow = 0; 
+  g_bufCurr = 0;
+  g_swapNow = 0; 
 
   Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus as slave
   Wire.onReceive(receiveEvent);   // define the receive function for receiving data from master
@@ -72,12 +71,12 @@ void setup() {
 
 //the mainloop - try to fetch data from the i2c bus and copy it into our buffer
 void loop() {
-  uint8_t b;
+  uint8_t b, i;
   delayMicroseconds(10);
   
   //check if buffer is filled, 96b image + 1b start marker + 1b end marker = 98b 
-  if (readI2c>97) { 
-    readI2c-=98;
+  if (g_readI2c>97) { 
+    g_readI2c-=98;
     //read header, wait until we get a START_OF_DATA or queue is empty
     i=0;
     while (Wire.available()>0 && i==0) {
@@ -128,13 +127,13 @@ void loop() {
 //HINT: do not handle stuff here!! this will NOT work
 //collect only data here and process it in the main loop!
 void receiveEvent(int numBytes) {
-  readI2c+=numBytes;
+  g_readI2c+=numBytes;
 }
 
 
 //==============DISPSHOW========================================
 
-//copy data from the i2c bus into backbuffer and set the swapNow flag
+//copy data from the i2c bus into backbuffer and set the g_swapNow flag
 void DispshowFrame(void) {
   unsigned char color,row,dots,ofs;
 
@@ -143,11 +142,11 @@ void DispshowFrame(void) {
     for (row=0;row<8;row++) {
       for (dots=0;dots<4;dots++) {
         //format: 32b G, 32b R, 32b B
-        buffer[!bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
+        buffer[!g_bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
       }
     }
   }
-  swapNow = 1;
+  g_swapNow = 1;
 }
 
 
@@ -155,23 +154,25 @@ void DispshowFrame(void) {
 
 //shift out led colors and swap buffer if needed (back buffer and front buffer)
 void displayNextLine() {
-  flash_next_line(line, level);  // scan the next line in LED matrix level by level.
-  line++;
-  if(line>7)        // when have scaned all LED's, back to line 0 and add the level
+  flash_next_line(g_line, g_level);  // scan the next line in LED matrix level by level.
+  g_line++;
+  if(g_line>7)        // when have scaned all LED's, back to line 0 and add the level
   {
-    line=0;
-    level++;
-    if(level>15) {
-      level=0;
+    g_line=0;
+    g_level++;
+    if (g_level>15) {
+      g_level=0;
       //SWAP buffer if requested
-      if (swapNow==1) {
-        bufCurr = !bufCurr;
+      if (g_swapNow==1) {
+        g_bufCurr = !g_bufCurr;
+        g_swapNow=0;
       }
     }
   }
 }
 
 // scan one line
+//TODO: are local variables needed here? or may we use global?
 void flash_next_line(unsigned char line,unsigned char level) {
   disable_oe;
   close_all_line;
@@ -190,6 +191,7 @@ void flash_next_line(unsigned char line,unsigned char level) {
 }
 
 // display one line by the color level in buff
+//TODO: are local variables needed here? or may we use global?
 void shift_24_bit(unsigned char line, unsigned char level) {
   unsigned char color,row,data0,data1;
   le_high;
@@ -197,8 +199,8 @@ void shift_24_bit(unsigned char line, unsigned char level) {
   {
     for (row=0;row<4;row++)
     {
-      data1=buffer[bufCurr][color][line][row]&0x0f;
-      data0=buffer[bufCurr][color][line][row]>>4;
+      data1=buffer[g_bufCurr][color][line][row]&0x0f;
+      data0=buffer[g_bufCurr][color][line][row]>>4;
 
       if(data0>level) {    //gray scale, 0x0f aways light (original comment, not sure what it means)
         shift_data_1;
