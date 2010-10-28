@@ -87,7 +87,7 @@ public class Rainbowduino implements Runnable {
 	//connection errors to arduino
 	private int connectionErrorCounter;
 	
-	//result of i2c scan
+	//result of i2c bus scan
 	private List<Integer> scannedI2cDevices;
 
 	//the home made gamma table - please note:
@@ -381,7 +381,7 @@ public class Rainbowduino implements Runnable {
 	}
 
 	/**
-	 * Initiate a I2C buf scan<br>
+	 * Initiate a I2C bus scan<br>
 	 * The result will be stored in the scannedI2cDevices list.<br>
 	 * Hint: it takes some time for the scan to finish - wait 1-2s before you
 	 *       check the result.
