@@ -1,6 +1,7 @@
 package com.neophob.lib.rainbowduino;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -23,16 +24,25 @@ public class SimpleTest extends PApplet {
 	 */
 	public void setup() {
 		r = new Rainbowduino(this);
-		List<Integer> list = new ArrayList<Integer>();
 		
+		List<Integer> list = new ArrayList<Integer>();		
 		frameRate(1);
 		  
 		list.add(5);list.add(6);
 		try {
 			r.initPort(list);
-		} catch (NoSerialPortFoundException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
-		}		
+		}
+		
+		System.out.println("Scan I2C bus: ");
+		r.i2cBusScan();
+		//give the scanner some time!
+		try {
+			Thread.sleep(3000);
+		} catch (Exception e) {}
+		
+		System.out.println("Found I2C devices: "+Arrays.toString(r.getScannedI2cDevices().toArray()));
 
 /*		try {
 			r.initPort("dunno", new ArrayList<Integer>());

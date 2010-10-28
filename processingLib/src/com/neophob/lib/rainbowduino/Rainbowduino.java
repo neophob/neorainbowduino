@@ -23,6 +23,7 @@ Boston, MA  02111-1307  USA
 
 package com.neophob.lib.rainbowduino;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,13 +31,13 @@ import java.util.logging.Logger;
 import processing.core.PApplet;
 import processing.serial.Serial;
 
-import com.neophob.lib.rainbowduino.NoSerialPortFoundException;
-
 /**
  * library to communicate with an arduino via serial port<br>
  * the arduino control up to n rainbowduinos using the i2c protocol
  * <br><br>
  * part of the neorainbowduino library
+ * 
+ * TODO: add blacklist for serial port detection!
  * 
  * @author Michael Vogt / neophob.com
  *
@@ -60,14 +61,14 @@ public class Rainbowduino implements Runnable {
 	/** 
 	 * internal lib version
 	 */
-	public static final String VERSION = "1.2";
+	public static final String VERSION = "1.3";
 
 	
 	private static final byte START_OF_CMD = 0x01;
 	private static final byte CMD_SENDFRAME = 0x03;
 	private static final byte CMD_PING = 0x04;
 	private static final byte CMD_INIT_RAINBOWDUINO = 0x05;
-	private static final byte CMD_SCAN_I2C_BUS 0x06
+	private static final byte CMD_SCAN_I2C_BUS = 0x06;
 	private static final byte CMD_HEARTBEAT = 0x10;	
 
 	private static final byte START_OF_DATA = 0x10;
@@ -85,6 +86,9 @@ public class Rainbowduino implements Runnable {
 	private int arduinoErrorCounter;
 	//connection errors to arduino
 	private int connectionErrorCounter;
+	
+	//result of i2c scan
+	private List<Integer> scannedI2cDevices;
 
 	//the home made gamma table - please note:
 	//the rainbowduino has a color resoution if 4096 colors (12bit)
@@ -133,6 +137,8 @@ public class Rainbowduino implements Runnable {
 	public Rainbowduino(PApplet _app) {
 		this.app = _app;
 		app.registerDispose(this);
+		
+		scannedI2cDevices = new ArrayList<Integer>();
 	}
 
 	/**
@@ -165,9 +171,16 @@ public class Rainbowduino implements Runnable {
 					} else
 						if (msg[0]==START_OF_CMD && msg[1]==CMD_SCAN_I2C_BUS) {
 							//process i2c scanning result
-							//TODO
-							for (int i=2; i<msg.length; i++) {
-								log.log(Level.INFO, "Reply from I2C device: #{0}", msg[i]);
+							for (int i=2; i<msg.length; i++) {								
+								int n;
+								try {
+									n = Integer.parseInt(""+msg[i]);
+									if (n==255 || n<0) {
+										break;
+									}
+									log.log(Level.INFO, "Reply from I2C device: #{0}", n);
+									scannedI2cDevices.add(n);
+								} catch (Exception e) {}
 							}
 						}
 						
@@ -367,15 +380,20 @@ public class Rainbowduino implements Runnable {
 		return false;
 	}
 
-	
-	public synchronized boolean i2cBusScan() {		
+	/**
+	 * Initiate a I2C buf scan<br>
+	 * The result will be stored in the scannedI2cDevices list.<br>
+	 * Hint: it takes some time for the scan to finish - wait 1-2s before you
+	 *       check the result.
+	 */
+	public synchronized void i2cBusScan() {		
 		byte cmdfull[] = new byte[7];
 		cmdfull[0] = START_OF_CMD;
 		cmdfull[1] = 0;
 		cmdfull[2] = 1;
 		cmdfull[3] = CMD_SCAN_I2C_BUS;
 		cmdfull[4] = START_OF_DATA;
-		cmdfull[5] = 0;					//TODO remove this
+		cmdfull[5] = 0;
 		cmdfull[6] = END_OF_DATA;
 		
 		try {
@@ -446,7 +464,7 @@ public class Rainbowduino implements Runnable {
 		cmdfull[2] = 1;
 		cmdfull[3] = CMD_INIT_RAINBOWDUINO;
 		cmdfull[4] = START_OF_DATA;
-		cmdfull[5] = 0;					//TODO REMOVE ME! unused
+		cmdfull[5] = 0;
 		cmdfull[6] = END_OF_DATA;
 		
 		try {
@@ -489,6 +507,14 @@ public class Rainbowduino implements Runnable {
 	 */
 	public long getArduinoHeartbeat() {
 		return arduinoHeartbeat;
+	}
+
+	/**
+	 * get the result of i2cBusScan() scan.
+	 * @return a list with I2C device address
+	 */
+	public synchronized List<Integer> getScannedI2cDevices() {
+		return scannedI2cDevices;
 	}
 
 	/**

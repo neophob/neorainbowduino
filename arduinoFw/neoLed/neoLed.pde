@@ -42,8 +42,8 @@ extern "C" {
 #define START_OF_DATA 0x10
 #define END_OF_DATA 0x20
 
-#define START_I2C_SCAN 0
-#define END_I2C_SCAN 127
+#define START_I2C_SCAN 1
+#define END_I2C_SCAN 101
 
 //this should match RX_BUFFER_SIZE from HardwareSerial.cpp
 byte serInStr[128]; 	 				 // array that will hold the serial input string
@@ -99,15 +99,12 @@ int send_initial_image(byte i2caddr) {
 // (can use result to potentially get other status on the I2C bus, see twi.c)
 // Assumes Wire.begin() has already been called
 void scanI2CBus() {
-  //disable interrupts!
-  cli();
-  
   Serial.write(CMD_START_BYTE);
   Serial.write(CMD_SCAN_I2C_BUS);
   
   byte rc;
   byte data = 0; // not used, just an address to feed to twi_writeTo()
-  for (byte addr = START_I2C_SCAN; addr <= END_I2C_SCAN; addr++ ) {
+  for (byte addr = START_I2C_SCAN; addr <= END_I2C_SCAN; addr++) {
   //rc 0 = success
     digitalWrite(13, HIGH);
     rc = twi_writeTo(addr, &data, 0, 1);
@@ -116,10 +113,7 @@ void scanI2CBus() {
     	Serial.write(addr);
     }
   }
-  Serial.write(0);
-  
-  //enable interrupts
-  sei();
+  Serial.write(255);
 }
 
 
@@ -166,7 +160,9 @@ void loop()
         g_errorCounter = send_initial_image(addr);
         break;
     case CMD_SCAN_I2C_BUS:
-    	scanI2CBus();   
+        MsTimer2::stop();
+    	scanI2CBus();
+        MsTimer2::start();
     	break;
     default:
     	//it must be an image, its size must be exactly 96 bytes
