@@ -92,6 +92,7 @@ int send_initial_image(byte i2caddr) {
   return BlinkM_sendBuffer(i2caddr, serInStr);
 }
 
+// ripped from http://todbot.com/arduino/sketches/I2CScanner/I2CScanner.pde
 // Scan the I2C bus between addresses from_addr and to_addr.
 // On each address, call the callback function with the address and result.
 // If result==0, address was found, otherwise, address wasn't found
@@ -115,6 +116,7 @@ void scanI2CBus() {
     	Serial.write(addr);
     }
   }
+  Serial.write(0);
   
   //enable interrupts
   sei();

@@ -67,7 +67,8 @@ public class Rainbowduino implements Runnable {
 	private static final byte CMD_SENDFRAME = 0x03;
 	private static final byte CMD_PING = 0x04;
 	private static final byte CMD_INIT_RAINBOWDUINO = 0x05;
-	private static final byte CMD_HEARTBEAT = 0x10;
+	private static final byte CMD_SCAN_I2C_BUS 0x06
+	private static final byte CMD_HEARTBEAT = 0x10;	
 
 	private static final byte START_OF_DATA = 0x10;
 	private static final byte END_OF_DATA = 0x20;
@@ -155,11 +156,21 @@ public class Rainbowduino implements Runnable {
 			if (connected() && port.available() > 3) {
 				byte[] msg = port.readBytes();
 				if (msg!=null && msg.length>3) {
-					if (msg[0]==START_OF_CMD && msg[1]==CMD_HEARTBEAT) {		
+					//process serial input data
+					if (msg[0]==START_OF_CMD && msg[1]==CMD_HEARTBEAT) {
+						//process heartbeat
 						arduinoHeartbeat = System.currentTimeMillis();
 						arduinoErrorCounter = (int)(msg[2]&255);
 						arduinoBufferSize = (int)msg[3];	
-					}					
+					} else
+						if (msg[0]==START_OF_CMD && msg[1]==CMD_SCAN_I2C_BUS) {
+							//process i2c scanning result
+							//TODO
+							for (int i=2; i<msg.length; i++) {
+								log.log(Level.INFO, "Reply from I2C device: #{0}", msg[i]);
+							}
+						}
+						
 				}
 			}
 		}
@@ -356,6 +367,25 @@ public class Rainbowduino implements Runnable {
 		return false;
 	}
 
+	
+	public synchronized boolean i2cBusScan() {		
+		byte cmdfull[] = new byte[7];
+		cmdfull[0] = START_OF_CMD;
+		cmdfull[1] = 0;
+		cmdfull[2] = 1;
+		cmdfull[3] = CMD_SCAN_I2C_BUS;
+		cmdfull[4] = START_OF_DATA;
+		cmdfull[5] = 0;					//TODO remove this
+		cmdfull[6] = END_OF_DATA;
+		
+		try {
+			port.write(cmdfull);	
+		} catch (Exception e) {
+			log.warning("Failed to send data to serial port! errorcnt: "+connectionErrorCounter);
+			connectionErrorCounter++;
+		}
+
+	}
 	/**
 	 * wrapper class to send a RGB image to the rainbowduino.
 	 * the rgb image gets converted to the rainbowduino compatible
@@ -416,7 +446,7 @@ public class Rainbowduino implements Runnable {
 		cmdfull[2] = 1;
 		cmdfull[3] = CMD_INIT_RAINBOWDUINO;
 		cmdfull[4] = START_OF_DATA;
-		cmdfull[5] = 0;					//unused
+		cmdfull[5] = 0;					//TODO REMOVE ME! unused
 		cmdfull[6] = END_OF_DATA;
 		
 		try {
