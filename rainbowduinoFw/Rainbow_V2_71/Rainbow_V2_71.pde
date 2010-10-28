@@ -27,23 +27,26 @@ of the code section in which it appears, such as a concurrently executing thread
 only place that this is likely to occur is in sections of code associated with interrupts, called an 
 interrupt service routine.
 */
+ 
 extern unsigned char buffer[2][3][8][4];  //define Two Buffs (one for Display ,the other for receive data)
 unsigned char imageBuffer[96];            //buffer used to read data from i2c bus
 
 volatile byte g_line,g_level;
 
 //read from bufCurr, write to !bufCurr
-
 //volatile   //the display is flickerling, brightness is reduced
 byte g_bufCurr;
+
+//flag to blit image
 volatile byte g_swapNow;
+
+//hold the number of availble bytes in the i2c buffer
 byte g_readI2c;
 
 #define START_OF_DATA 0x10
 #define END_OF_DATA 0x20
 
 void setup() {
-  g_readI2c=0;
   DDRD=0xff;        // Configure ports (see http://www.arduino.cc/en/Reference/PortManipulation): digital pins 0-7 as OUTPUT
   DDRC=0xff;        // analog pins 0-5 as OUTPUT
   DDRB=0xff;        // digital pins 8-13 as OUTPUT
@@ -52,7 +55,7 @@ void setup() {
 
   g_level = 0;
   g_line = 0;
-
+  g_readI2c = 0;
   g_bufCurr = 0;
   g_swapNow = 0; 
 
@@ -71,45 +74,45 @@ void loop() {
 
   //check if buffer is filled, 96b image + 1b start marker + 1b end marker = 98b 
   if (g_readI2c>97) { 
-    g_readI2c-=98;
+    byte readBytes=0;
+
     //read header, wait until we get a START_OF_DATA or queue is empty
     i=0;
     while (Wire.available()>0 && i==0) {
       b = Wire.receive();
+      readBytes++;
       if (b == START_OF_DATA) {
         i=1;
       }
     }
     
     if (i==0) {
+      g_readI2c-=readBytes;
       //error, missing START_OF_DATA marker
       return;
     }
   
+    //read image data
     i=0;
     while (Wire.available()>0 && i<96) { 
       imageBuffer[i]=Wire.receive();  //recieve whatever is available
+      readBytes++;
       i++;
     }
     
     //check footer
     b=0;
     if (Wire.available()>0) {
-      b = Wire.receive();      
+      b = Wire.receive();  
+      readBytes++;    
     }
     
+    g_readI2c-=readBytes;
+
     //if the receieved data looks good - copy it into backBuffer
     if (b == END_OF_DATA) {
       DispshowFrame();        
-    } /*else {
-      //error, try to read data until eod marker if possible
-      while (Wire.available()>0 && i==0) {
-        b = Wire.receive();
-        if (b == END_OF_DATA) {
-          i=1;
-        }
-      }
-    }*/
+    } 
   }
 }
 
@@ -129,19 +132,21 @@ void receiveEvent(int numBytes) {
 
 //copy data from the i2c bus into backbuffer and set the g_swapNow flag
 void DispshowFrame(void) {
-  byte color,row,dots,ofs;
+  byte color,row,dots,ofs,buf;
   
+//this is not needed, as the swapping is done much faster!
   //do not fill buffer if we still wait for the blit!
-  if (g_swapNow==1) {
-    return;
-  }
+  //if (g_swapNow==1) {
+  //  return;
+  //}
   
   ofs=0;
+  buf=!g_bufCurr;
   for (color=0;color<3;color++) {
     for (row=0;row<8;row++) {
       for (dots=0;dots<4;dots++) {
         //format: 32b G, 32b R, 32b B
-        buffer[!g_bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
+        buffer[buf][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
       }
     }
   }
@@ -154,6 +159,8 @@ void DispshowFrame(void) {
 //============INTERRUPTS======================================
 
 //shift out led colors and swap buffer if needed (back buffer and front buffer)
+//HINT: this function gets called 10000 times per second, this means ALOT more
+//      than DispshowFrame! keep that in mind if we swap buffers!
 void displayNextLine() {
   flash_next_line();  // scan the next line in LED matrix level by level.
   g_line++;
@@ -194,10 +201,9 @@ void flash_next_line() {
 void shift_24_bit() {
   unsigned char color,row,data0,data1;
   le_high;
-  for (color=0;color<3;color++)//GRB
-  {
-    for (row=0;row<4;row++)
-    {
+  for (color=0;color<3;color++) {//GRB
+    for (row=0;row<4;row++) {
+      //even if data1 and data0 are filled with static data (=0x01) it flickers on low red!
       data1=buffer[g_bufCurr][color][g_line][row]&0x0f;
       data0=buffer[g_bufCurr][color][g_line][row]>>4;
 
