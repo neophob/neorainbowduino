@@ -18,6 +18,13 @@
 #define SH_PORT_LE   PORTC
 //============================================
 
+//some handy hints, ripped form the arduino forum
+//Setting a bit: byte |= 1 << bit;
+//Clearing a bit: byte &= ~(1 << bit);
+//Toggling a bit: byte ^= 1 << bit;
+//Checking if a bit is set: if (byte & (1 << bit))
+//Checking if a bit is cleared: if (~byte & (1 << bit)) OR if (!(byte & (1 << bit)))
+
 #define clk_rising  {SH_PORT_CLK&=~SH_BIT_CLK;SH_PORT_CLK|=SH_BIT_CLK;}
 #define le_high     {SH_PORT_LE|=SH_BIT_LE;}
 #define le_low      {SH_PORT_LE&=~SH_BIT_LE;}

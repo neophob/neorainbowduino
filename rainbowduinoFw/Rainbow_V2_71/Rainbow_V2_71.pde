@@ -155,10 +155,10 @@ void displayNextLine() {
 //    g_line=0;
 //    for (g_level=0; g_level<15;) {
   flash_next_line();  // scan the next line in LED matrix level by level. 
-  g_line++;                                                      // process all 8 lines of the led matrix 
+  g_line++;                                      // process all 8 lines of the led matrix 
   if(g_line>7) {                                 // when have scaned all LED's, back to line 0 and add the level 
     g_line=0; 
-    g_level++;                                           // g_level controls the brightness of a pixel. 
+    g_level++;                                   // g_level controls the brightness of a pixel. 
     if (g_level>15) {                            // there are 16 levels of brightness (4bit) * 3 colors = 12bit resolution
       g_level=0; 
       if (g_line && g_swapNow==1) { 
@@ -193,24 +193,26 @@ void flash_next_line() {
 // display one line by the color level in buff
 void shift_24_bit() { 
   byte color,row,data0,data1; 
-  le_high; 
-  for (color=0;color<3;color++) {//GRB 
+  
+  le_high;                           // TODO: what does this do?
+  for (color=0;color<3;color++) {    // Color format GRB 
     for (row=0;row<4;row++) { 
+      //get pixel from buffer
       data1=buffer[g_bufCurr][color][g_line][row]&0x0f;
       data0=buffer[g_bufCurr][color][g_line][row]>>4;
 
-      if(data0>g_level) {    //gray scale, 0x0f aways light (original comment, not sure what it means)
-        shift_data_1;
+      if(data0>g_level) { // is this pixel visible in current level (=brightness)
+        shift_data_1;     // yes - light on
         clk_rising;
       } 
       else {
-        shift_data_0;
+        shift_data_0;     // no
         clk_rising;
       }
 
       if(data1>g_level) {
-        shift_data_1;
-        clk_rising;        //TODO: document
+        shift_data_1;      // TODO: what does this do?
+        clk_rising;        // TODO: what does this do?
       } 
       else {
         shift_data_0;
@@ -219,7 +221,7 @@ void shift_24_bit() {
     } 
   } 
 
-  le_low; 
+  le_low; // TODO: what does this do?
 }
 
 
