@@ -137,7 +137,9 @@ public class Rainbowduino {
         240,    240,    240,    240,    240,    255,    255,    255 
     };
 
+	
 	/**
+	 * Create a new instance to communicate with the rainbowduino.
 	 * 
 	 * @param _app
 	 * @param rainbowduinoAddr
@@ -149,6 +151,7 @@ public class Rainbowduino {
 	}
 
 	/**
+	 * Create a new instance to communicate with the rainbowduino.
 	 * 
 	 * @param _app
 	 * @param rainbowduinoAddr
@@ -161,6 +164,7 @@ public class Rainbowduino {
 	}
 
 	/**
+	 * Create a new instance to communicate with the rainbowduino.
 	 * 
 	 * @param _app
 	 * @param rainbowduinoAddr
@@ -174,9 +178,13 @@ public class Rainbowduino {
 
 
 	/**
-	 * Create a new instance to communicate with the rainbowduino. 
+	 * Create a new instance to communicate with the rainbowduino.
 	 * 
-	 * @param _app parent Applet
+	 * @param _app
+	 * @param portName
+	 * @param baud
+	 * @param rainbowduinoAddr
+	 * @throws NoSerialPortFoundException
 	 */
 	public Rainbowduino(PApplet _app, String portName, int baud, List<Integer> rainbowduinoAddr) 
 		throws NoSerialPortFoundException {
@@ -499,7 +507,7 @@ public class Rainbowduino {
 		
 		try {
 			port.output.write(cmdfull);
-			//TODO flush or not??
+			//TODO flush or not?? -> do NOT!
 			//port.output.flush();
 		} catch (Exception e) {
 			log.log(Level.INFO, "Error sending serial data!", e);
@@ -671,6 +679,7 @@ public class Rainbowduino {
 
 	/**
 	 * Scan I2C bus
+	 * 
 	 * @param _app
 	 * @return List of found i2c devices
 	 */
