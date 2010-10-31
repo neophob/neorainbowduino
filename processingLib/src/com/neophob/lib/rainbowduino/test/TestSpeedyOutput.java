@@ -24,15 +24,14 @@ public class TestSpeedyOutput extends PApplet {
 	/**
 	 * 
 	 */
-	public void setup() {
-		r = new Rainbowduino(this);
+	public void setup() {		
 		frameRate(100);
 		
 		List<Integer> list = new ArrayList<Integer>();		
 
 		list.add(5);list.add(6);
 		try {
-			r.initPort("/dev/tty.usbserial-A9007QOH", list);
+			r = new Rainbowduino(this, list, "/dev/tty.usbserial-A9007QOH");
 			System.out.println("ping: "+r.ping());
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -42,13 +41,6 @@ public class TestSpeedyOutput extends PApplet {
 		x=64;
 	}
 	
-	private void slp(int ms) {
-		try {
-			Thread.sleep(ms);
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-	} 
 	
 	public void draw() {  
 		

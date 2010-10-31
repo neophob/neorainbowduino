@@ -137,19 +137,88 @@ public class Rainbowduino {
         240,    240,    240,    240,    240,    255,    255,    255 
     };
 
+	/**
+	 * 
+	 * @param _app
+	 * @param rainbowduinoAddr
+	 * @throws NoSerialPortFoundException
+	 */
+	public Rainbowduino(PApplet _app, List<Integer> rainbowduinoAddr) 
+		throws NoSerialPortFoundException {
+		this(_app, null, 0, rainbowduinoAddr);
+	}
+
+	/**
+	 * 
+	 * @param _app
+	 * @param rainbowduinoAddr
+	 * @param baud
+	 * @throws NoSerialPortFoundException
+	 */
+	public Rainbowduino(PApplet _app, List<Integer> rainbowduinoAddr, int baud) 
+		throws NoSerialPortFoundException {
+		this(_app, null, baud, rainbowduinoAddr);
+	}
+
+	/**
+	 * 
+	 * @param _app
+	 * @param rainbowduinoAddr
+	 * @param portName
+	 * @throws NoSerialPortFoundException
+	 */
+	public Rainbowduino(PApplet _app, List<Integer> rainbowduinoAddr, String portName) 
+		throws NoSerialPortFoundException {
+		this(_app, portName, 0, rainbowduinoAddr);
+	}
+
 
 	/**
 	 * Create a new instance to communicate with the rainbowduino. 
 	 * 
 	 * @param _app parent Applet
 	 */
-	public Rainbowduino(PApplet _app) {
+	public Rainbowduino(PApplet _app, String portName, int baud, List<Integer> rainbowduinoAddr) 
+		throws NoSerialPortFoundException {
+		
 		this.app = _app;
 		app.registerDispose(this);
 		
 		scannedI2cDevices = new ArrayList<Integer>();
 		lastDataMap = new HashMap<Byte, String>();
+		
+		String serialPortName="";
+		if(baud > 0) {
+			this.baud = baud;
+		}
+		
+		if (portName!=null && !portName.trim().isEmpty()) {
+			//open specific port
+			log.log(Level.INFO,	"open port: {0}", portName);
+			serialPortName = portName;
+			openPort(portName, rainbowduinoAddr);
+		} else {
+			//try to find the port
+			String[] ports = Serial.list();
+			for (int i=0; port==null && i<ports.length; i++) {
+				log.log(Level.INFO,	"open port: {0}", ports[i]);
+				try {
+					serialPortName = ports[i];
+					openPort(ports[i], rainbowduinoAddr);
+				//catch all, there are multiple exception to catch (NoSerialPortFoundException, PortInUseException...)
+				} catch (Exception e) {
+					// search next port...
+				}				
+			}
+		}
+		
+		if (port==null) {
+			throw new NoSerialPortFoundException("Error: no serial port found!");
+		}
+		
+		log.log(Level.INFO,	"found serial port: "+serialPortName);
 	}
+
 
 	/**
 	 * clean up library
@@ -179,77 +248,6 @@ public class Rainbowduino {
 	}	
 
 
-	/**
-	 * auto init serial port by default values
-	 * 
-	 * @param rainbowduinoAddr a list with all i2c addr of rainbowduinos
-	 * @throws NoSerialPortFoundException
-	 */
-	public void initPort(List<Integer> rainbowduinoAddr) throws NoSerialPortFoundException {
-		this.initPort(null, 0, rainbowduinoAddr);
-	}
-
-	
-	/**
-	 * Auto init serial port with given baud rate
-	 * @param baud rate
-	 * @param rainbowduinoAddr a list with all i2c addr of rainbowduinos
-	 */
-	public void initPort(int baud, List<Integer> rainbowduinoAddr) throws NoSerialPortFoundException {
-		this.initPort(null, baud, rainbowduinoAddr);
-	}	
-
-	
-	/**
-	 * 
-	 * @param portName device address
-	 * @param rainbowduinoAddr a list with all i2c addr of rainbowduinos
-	 * @throws NoSerialPortFoundException
-	 */
-	public void initPort(String portName, List<Integer> rainbowduinoAddr) throws NoSerialPortFoundException {
-		this.initPort(portName, 0, rainbowduinoAddr);
-	}	
-
-	
-	/**
-	 * Open serial port with given name and baud rate.
-	 * No sensity checks
-	 * 
-	 */
-	public void initPort(String portName, int baud, List<Integer> rainbowduinoAddr) throws NoSerialPortFoundException {
-		String serialPortName="";
-		if(baud > 0) {
-			this.baud = baud;
-		}
-		
-		if (portName!=null && !portName.trim().isEmpty()) {
-			//open specific port
-			log.log(Level.INFO,	"open port: {0}", portName);
-			serialPortName = portName;
-			openPort(portName, rainbowduinoAddr);
-		} else {
-			//try to find the port
-			String[] ports = Serial.list();
-			for (int i=0; port==null && i<ports.length; i++) {
-				log.log(Level.INFO,	"open port: {0}", ports[i]);
-				try {
-					serialPortName = ports[i];
-					openPort(ports[i], rainbowduinoAddr);
-				//catch all, there are multiple exception to catch (NoSerialPortFoundException, PortInUseException...)
-				} catch (Exception e) {
-					// search next port...
-				}
-				
-			}
-		}
-		
-		if (port==null) {
-			throw new NoSerialPortFoundException("Error: no serial port found!");
-		}
-		
-		log.log(Level.INFO,	"found serial port: "+serialPortName);
-		
-	}
 	
 
 	/**
@@ -289,8 +287,7 @@ public class Rainbowduino {
 			}
 			port = null;
 			throw new NoSerialPortFoundException("Failed to open port "+portName+": "+e);
-		}
-		
+		}	
 	}
 
 
@@ -333,7 +330,7 @@ public class Rainbowduino {
 	 * Hint: it takes some time for the scan to finish - wait 1-2s before you
 	 *       check the result.
 	 */
-	public boolean i2cBusScan() {		
+	private boolean i2cBusScan() {		
 		byte cmdfull[] = new byte[7];
 		cmdfull[0] = START_OF_CMD;
 		cmdfull[1] = 0;
@@ -488,14 +485,6 @@ public class Rainbowduino {
 	 */
 	public long getArduinoHeartbeat() {
 		return arduinoHeartbeat;
-	}
-
-	/**
-	 * get the result of i2cBusScan() scan.
-	 * @return a list with I2C device address
-	 */
-	public List<Integer> getScannedI2cDevices() {
-		return scannedI2cDevices;
 	}
 	
 	/**
@@ -680,5 +669,21 @@ public class Rainbowduino {
 		}
 	}
 
-
+	/**
+	 * Scan I2C bus
+	 * @param _app
+	 * @return List of found i2c devices
+	 */
+	public static List<Integer> scanI2cBus(PApplet _app) {
+		Rainbowduino r=null;
+		
+		try {
+			r = new Rainbowduino(_app, new ArrayList<Integer>());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		r.i2cBusScan();
+		return r.scannedI2cDevices;
+	}
 }

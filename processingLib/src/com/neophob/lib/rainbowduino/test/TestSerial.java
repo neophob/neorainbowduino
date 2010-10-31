@@ -25,16 +25,14 @@ public class TestSerial extends PApplet {
 	/**
 	 * 
 	 */
-	public void setup() {
-		r = new Rainbowduino(this);
+	public void setup() {		
 		frameRate(5);
 		
 		List<Integer> list = new ArrayList<Integer>();		
 
 		list.add(5);list.add(6);
 		try {
-//			r.initPort("/dev/tty.usbserial-A9007QOH", list);
-			r.initPort(list);
+			r = new Rainbowduino(this, list);
 			System.out.println("ping: "+r.ping());
 		} catch (Exception e) {
 			e.printStackTrace();
