@@ -82,14 +82,21 @@ public class Rainbowduino {
 	
 	private long arduinoHeartbeat;
 	private int arduinoBufferSize;
-	//logical errors reported by arduino
+	
+	//logical errors reported by arduino, TODO: rename to lastErrorCode
 	private int arduinoErrorCounter;
+	
 	//connection errors to arduino
 	private int connectionErrorCounter;
 	
-	//result of i2c bus scan
+	/**
+	 * result of i2c bus scan
+	 */
 	private List<Integer> scannedI2cDevices;
 	
+	/**
+	 * map to store checksum of image
+	 */
 	private Map<Byte, String> lastDataMap;
 	
 	//the home made gamma table - please note:
@@ -349,8 +356,9 @@ public class Rainbowduino {
 		return sendFrame(addr, convertRgbToRainbowduino(data));
 	}
 
+	
 	/**
-	 * 
+	 * get md5 hash out of an image. used to check if the image changed
 	 * @param addr
 	 * @param data
 	 * @return
@@ -473,9 +481,9 @@ public class Rainbowduino {
 	}
 	
 	/**
-	 * 
+	 * send the data to the serial port
 	 * @param cmdfull
-	 * @return
+	 * @return true if ack received, false if not
 	 */
 	private synchronized boolean writeSerialData(byte[] cmdfull) {
 		//TODO handle the 128 byte buffer limit!
