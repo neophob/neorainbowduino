@@ -4,10 +4,18 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * Various Helper Methods
+ * <br><br>
+ * part of the neorainbowduino library
+ * 
+ * @author Michael Vogt / neophob.com
+ *
+ */
 public class HelperUtils {
 
 	/**
-	 * 
+	 * get md5 checksum of an byte array
 	 * @param input
 	 * @return
 	 */
