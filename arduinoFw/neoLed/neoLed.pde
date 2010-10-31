@@ -5,9 +5,6 @@ published as i-dont-give-a-shit-about-any-license
 based on blinkm firmware by thingM and
 "daft punk" firmware by Scott C / ThreeFN 
 
-needed libraries:
- -MsTimer2 (http://www.arduino.cc/playground/Main/MsTimer2)
- 
 libraries to patch:
  Wire: 
  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
@@ -15,26 +12,27 @@ libraries to patch:
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
 
 */
+//#define TWI_BUFFER_LENGTH 98
 
-#include <MsTimer2.h>
-#include "Wire.h"
+#include <Wire.h>
 #include "WProgram.h"
 
 extern "C" { 
 #include "utility/twi.h"  // from Wire library, so we can do bus scanning
 }
 
-#define BAUD_RATE 57600
-//115200
+
+//57600 - 60ms to send an image
+#define BAUD_RATE 115200
 
 #define CLEARCOL 51 //00110011
 
 //some magic numberes
 #define CMD_START_BYTE  0x01
+#define CMD_SENDFRAME 0x03
 #define CMD_PING  0x04
 #define CMD_INIT_RAINBOWDUINO 0x05
 #define CMD_SCAN_I2C_BUS 0x06
-#define CMD_HEARTBEAT 0x10
 
 #define SERIAL_WAIT_TIME_IN_MS 20
 
@@ -48,26 +46,20 @@ extern "C" {
 //this should match RX_BUFFER_SIZE from HardwareSerial.cpp
 byte serInStr[128]; 	 				 // array that will hold the serial input string
 
-volatile byte g_errorCounter;
+byte g_errorCounter;
 
-//send serial reply to processing lib
-static void sendSerialResponse(byte command, byte param) {
-  byte send[4];
-  send[0]=CMD_START_BYTE;
-  send[1]=command;
-  send[2]=param;
-  send[3]=Serial.available();
-  Serial.write(send, 4);
+static void sendAck() {
+  byte response[5];
+  response[0] = 'A';
+  response[1] = 'C';
+  response[2] = 'K';
+  response[3] = Serial.available();
+  response[4] = g_errorCounter;  
+  Serial.write(response, 5);
+  //Clear bufer
+ // Serial.flush();
 }
 
-//send heartbeat command to host and reset the error counter
-//save the error counter on the host side!
-void heartbeat() {
-  digitalWrite(13, HIGH);
-  sendSerialResponse(CMD_HEARTBEAT, g_errorCounter);
-  g_errorCounter=0;
-  digitalWrite(13, LOW);
-}
 
 //send an white image to the target rainbowduino
 //contains red led's which describe its i2c addr
@@ -125,23 +117,23 @@ void setup() {
   //im your slave and wait for your commands, master!
   Serial.begin(BAUD_RATE); //Setup high speed Serial
   Serial.flush();
-
-  //do not send serial data too often
-  MsTimer2::set(3000, heartbeat); // 3000ms period
-  MsTimer2::start();
 }
 
-void loop()
-{
+
+void loop() {
   //read the serial port and create a string out of what you read
   g_errorCounter=0;
 
+  digitalWrite(13, LOW);
   // see if we got a proper command string yet
   if (readCommand(serInStr) == 0) {
-    delay(10); 
+    //wait 50ms
+    delay(2); 
     return;
   }
 
+  digitalWrite(13, HIGH);
+  
   //i2c addres of device
   byte addr    = serInStr[1];
   //how many bytes we're sending
@@ -152,27 +144,31 @@ void loop()
   byte* cmd    = serInStr+5;
 
   switch (type) {
+    case CMD_SENDFRAME:
+    	//the size of an image must be exactly 96 bytes
+        if (sendlen!=96) {
+          g_errorCounter=100;
+        } else {
+          g_errorCounter = BlinkM_sendBuffer(addr, cmd);    
+        }
+        break;
     case CMD_PING:
-        sendSerialResponse(CMD_PING, 0); 
+        //just send the ack!
         break;
     case CMD_INIT_RAINBOWDUINO:
         //send initial image to rainbowduino
         g_errorCounter = send_initial_image(addr);
         break;
     case CMD_SCAN_I2C_BUS:
-        MsTimer2::stop();
     	scanI2CBus();
-        MsTimer2::start();
     	break;
     default:
-    	//it must be an image, its size must be exactly 96 bytes
-        if (sendlen!=96) {
-          g_errorCounter=100;
-          return;
-        }
-        g_errorCounter = BlinkM_sendBuffer(addr, cmd);    
+        //invalid command
+        g_errorCounter=130; 
         break;
   }
+        
+  sendAck();
     
 }
 
@@ -201,10 +197,14 @@ static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
 		cmdfull[6] = END_OF_DATA (marker);
 */
 #define HEADER_SIZE 5
-uint8_t readCommand(byte *str)
-{
-  uint8_t b,i,sendlen;
-
+byte readCommand(byte *str) {
+  byte b,i,sendlen;
+/*  str[2]=96;
+  str[1]=6;
+  str[3]=3;
+for (int i=0; i<96; i++) 
+str[HEADER_SIZE+i]=0x11;
+return 96;*/
   //wait until we get a CMD_START_BYTE or queue is empty
   i=0;
   while (Serial.available()>0 && i==0) {

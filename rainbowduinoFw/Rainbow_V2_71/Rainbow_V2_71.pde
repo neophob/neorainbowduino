@@ -16,8 +16,6 @@ arduino serial-i2c-gateway, by michael vogt / neophob.com 2010
  	
  */
 
-//#define TWI_BUFFER_LENGTH 98
-
 #include <Wire.h>
 #include <FlexiTimer2.h>
 #include "Rainbow.h"
@@ -38,14 +36,14 @@ byte g_line,g_level;
 //read from bufCurr, write to !bufCurr
 //volatile   //the display is flickerling, brightness is reduced
 byte g_bufCurr;
-byte interlace=0; 
+//byte interlace=0; 
 
 //flag to blit image
 volatile byte g_swapNow;
 
 //hold the number of availble bytes in the i2c buffer
 volatile byte g_readI2c;
-byte avail;
+byte g_circle;
 
 #define START_OF_DATA 0x10
 #define END_OF_DATA 0x20
@@ -62,9 +60,15 @@ void setup() {
   g_bufCurr = 0;
   g_swapNow = 0; 
   g_readI2c = 0;
+  g_circle = 0;
 
   Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus as slave
   Wire.onReceive(receiveEvent);   // define the receive function for receiving data from master
+  // Keep in mind:
+  // While an interrupt routine is running, all other interrupts are blocked. As a result, timers will not work 
+  // in interrupt routines and other functionality may not work as expected
+  // -> if i2c data is receieved our led update timer WILL NOT WORK for a short time, the result
+  // are display errors!
 
   //redraw screen 80 times/s
   FlexiTimer2::set(1, 1.0f/(128.0f*80.0f), displayNextLine);
@@ -73,9 +77,9 @@ void setup() {
 
 //the mainloop - try to fetch data from the i2c bus and copy it into our buffer
 void loop() {
-  byte b,i;
   if (g_readI2c>97) { 
-    b = Wire.receive();
+    
+    byte b = Wire.receive();
     g_readI2c--;
     if (b != START_OF_DATA) {
       //handle error, read remaining data until end of data marker
@@ -84,10 +88,10 @@ void loop() {
       return;
     }
 
+    b=0;
     //read image data
-    i=0;
-    while (Wire.available()>0 && i<96) { 
-      imageBuffer[i++]=Wire.receive();  //recieve whatever is available
+    while (Wire.available()>0 && b<96) { 
+      imageBuffer[b++]=Wire.receive();  //recieve whatever is available
       g_readI2c--;
     }
 
@@ -123,18 +127,18 @@ void receiveEvent(int numBytes) {
 void DispshowFrame(void) {
   byte color,row,dots,ofs;
 
-  //this is not needed, as the swapping is done much faster!
+  //this shoud not be needed, as the swapping is done much faster!
   //do not fill buffer if we still wait for the blit!
-  //if (g_swapNow==1) {
-  //  return;
-  //}
+//  if (g_swapNow==1) {
+//    return;
+//  }
 
   ofs=0;
   for (color=0;color<3;color++) {
     for (row=0;row<8;row++) {
       for (dots=0;dots<4;dots++) {
         //format: 32b G, 32b R, 32b B
-        buffer[g_bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
+        buffer[!g_bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
       }
     }
   }
@@ -161,22 +165,28 @@ void displayNextLine() {
     g_level++;                                   // g_level controls the brightness of a pixel. 
     if (g_level>15) {                            // there are 16 levels of brightness (4bit) * 3 colors = 12bit resolution
       g_level=0; 
-      if (g_line && g_swapNow==1) { 
-        g_bufCurr = !g_bufCurr; 
-      } 
     } 
   }
-
+  g_circle++;
+  
+  //check end of circle (16*8)
+  if (g_circle==128) {
+    if (g_swapNow==1) {
+      g_swapNow = 0;
+      g_bufCurr = !g_bufCurr;
+    }    
+    g_circle = 0;
+  }
 }
 
 
 // scan one line
 void flash_next_line() {
-  disable_oe;
-  close_all_line;
-  shift_24_bit();
+  disable_oe;            // TODO: what does this do?
+  close_all_line;        // TODO: what does this do?
+  shift_24_bit();        // feed the leds
 
-  //open_line(line);
+  //does this "select" the current line?
   if(g_line < 3) {    // Open the line and close others
     PORTB  = (PINB & ~0x07) | 0x04 >> g_line;
     PORTD  = (PIND & ~0xF8);

@@ -24,7 +24,10 @@ Boston, MA  02111-1307  USA
 package com.neophob.lib.rainbowduino;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,7 +45,7 @@ import processing.serial.Serial;
  * @author Michael Vogt / neophob.com
  *
  */
-public class Rainbowduino implements Runnable {
+public class Rainbowduino {
 
 	static Logger log = Logger.getLogger(Rainbowduino.class.getName());
 
@@ -61,25 +64,24 @@ public class Rainbowduino implements Runnable {
 	/** 
 	 * internal lib version
 	 */
-	public static final String VERSION = "1.3";
+	public static final String VERSION = "1.4";
 
+	private static final String ACK_STRING = "ACK";
 	
 	private static final byte START_OF_CMD = 0x01;
 	private static final byte CMD_SENDFRAME = 0x03;
 	private static final byte CMD_PING = 0x04;
 	private static final byte CMD_INIT_RAINBOWDUINO = 0x05;
 	private static final byte CMD_SCAN_I2C_BUS = 0x06;
-	private static final byte CMD_HEARTBEAT = 0x10;	
 
 	private static final byte START_OF_DATA = 0x10;
 	private static final byte END_OF_DATA = 0x20;
 
 	private PApplet app;
 
-	private int baud = 57600;//115200;
+	private int baud = 115200;
 	private Serial port;
 	
-	private Thread runner;
 	private long arduinoHeartbeat;
 	private int arduinoBufferSize;
 	//logical errors reported by arduino
@@ -89,7 +91,9 @@ public class Rainbowduino implements Runnable {
 	
 	//result of i2c bus scan
 	private List<Integer> scannedI2cDevices;
-
+	
+	private Map<Byte, String> lastDataMap;
+	
 	//the home made gamma table - please note:
 	//the rainbowduino has a color resoution if 4096 colors (12bit)
 	private static int[] gammaTab = {       
@@ -139,55 +143,16 @@ public class Rainbowduino implements Runnable {
 		app.registerDispose(this);
 		
 		scannedI2cDevices = new ArrayList<Integer>();
+		lastDataMap = new HashMap<Byte, String>();
 	}
 
 	/**
 	 * clean up library
 	 */
 	public void dispose() {
-		runner = null;
 		if(connected()) port.stop();
 	}
 
-	/**
-	 * get messages from the serial port from a seperate thread
-	 */
-	public void run() {
-		while (Thread.currentThread() == runner) {
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException e) {
-			}
-
-			if (connected() && port.available() > 3) {
-				byte[] msg = port.readBytes();
-				if (msg!=null && msg.length>3) {
-					//process serial input data
-					if (msg[0]==START_OF_CMD && msg[1]==CMD_HEARTBEAT) {
-						//process heartbeat
-						arduinoHeartbeat = System.currentTimeMillis();
-						arduinoErrorCounter = (int)(msg[2]&255);
-						arduinoBufferSize = (int)msg[3];	
-					} else
-						if (msg[0]==START_OF_CMD && msg[1]==CMD_SCAN_I2C_BUS) {
-							//process i2c scanning result
-							for (int i=2; i<msg.length; i++) {								
-								int n;
-								try {
-									n = Integer.parseInt(""+msg[i]);
-									if (n==255 || n<0) {
-										break;
-									}
-									log.log(Level.INFO, "Reply from I2C device: #{0}", n);
-									scannedI2cDevices.add(n);
-								} catch (Exception e) {}
-							}
-						}
-						
-				}
-			}
-		}
-	}
 
 
 	/**
@@ -297,11 +262,8 @@ public class Rainbowduino implements Runnable {
 		try {
 			port = new Serial(app, portName, this.baud);
 			sleep(1500); //give it time to initialize		
-			if (ping((byte)0)) {
-				this.runner = new Thread(this);
-				this.runner.setName("ZZ Arduino Heartbeat Thread");
-				this.runner.start();
-	
+			if (ping()) {
+
 				//send initial image to rainbowduinos
 				for (int i: rainbowduinoAddr) {
 					this.initRainbowduino((byte)i);					
@@ -316,12 +278,12 @@ public class Rainbowduino implements Runnable {
 			port = null;
 			throw new NoSerialPortFoundException("No response from port "+portName);
 		} catch (Exception e) {	
-			log.log(Level.WARNING, "Failed to open port {0}", portName);
+			log.log(Level.WARNING, "Failed to open port {0}: {1}", new Object[] {portName, e});
 			if (port != null) {
 				port.stop();        					
 			}
 			port = null;
-			throw new NoSerialPortFoundException("Failed to open port "+portName+": "+e.getCause());
+			throw new NoSerialPortFoundException("Failed to open port "+portName+": "+e);
 		}
 		
 	}
@@ -333,7 +295,7 @@ public class Rainbowduino implements Runnable {
 	 * 
 	 * @return wheter ping was successfull (arduino reachable) or not
 	 */
-	public synchronized boolean ping(byte addr) {		
+	public synchronized boolean ping() {		
 		/*
 		 *  0   <startbyte>
 		 *  1   <i2c_addr>
@@ -345,7 +307,7 @@ public class Rainbowduino implements Runnable {
 		 */
 		byte cmdfull[] = new byte[7];
 		cmdfull[0] = START_OF_CMD;
-		cmdfull[1] = addr; //unused here!
+		cmdfull[1] = 0; //unused here!
 		cmdfull[2] = 0x01;
 		cmdfull[3] = CMD_PING;
 		cmdfull[4] = START_OF_DATA;
@@ -354,30 +316,7 @@ public class Rainbowduino implements Runnable {
 
 		//do not use the processing command, as it displays ugly error messages on the console!
 		//port.write(cmdfull);
-		try {
-			port.output.write(cmdfull);
-			port.output.flush();
-		} catch (Exception e) {
-			//e.printStackTrace();
-			return false;
-		}
-
-		int timeout=25; //wait up to 2.5s
-		while( timeout > 0 && port.available() < 2) {
-			sleep(100); //in ms
-			timeout--;
-		}
-
-		if (timeout < 1) {
-			return false;
-		}
-
-		byte[] msg = port.readBytes();		
-		if (msg[0]==START_OF_CMD && msg[1]==CMD_PING) {
-			return true;
-		}
-
-		return false;
+		return writeSerialData(cmdfull);
 	}
 
 	/**
@@ -386,7 +325,7 @@ public class Rainbowduino implements Runnable {
 	 * Hint: it takes some time for the scan to finish - wait 1-2s before you
 	 *       check the result.
 	 */
-	public synchronized void i2cBusScan() {		
+	public synchronized boolean i2cBusScan() {		
 		byte cmdfull[] = new byte[7];
 		cmdfull[0] = START_OF_CMD;
 		cmdfull[1] = 0;
@@ -396,14 +335,10 @@ public class Rainbowduino implements Runnable {
 		cmdfull[5] = 0;
 		cmdfull[6] = END_OF_DATA;
 		
-		try {
-			port.write(cmdfull);	
-		} catch (Exception e) {
-			log.warning("Failed to send data to serial port! errorcnt: "+connectionErrorCounter);
-			connectionErrorCounter++;
-		}
-
+		return writeSerialData(cmdfull);
 	}
+	
+	
 	/**
 	 * wrapper class to send a RGB image to the rainbowduino.
 	 * the rgb image gets converted to the rainbowduino compatible
@@ -412,10 +347,36 @@ public class Rainbowduino implements Runnable {
 	 * @param addr the i2c address of the device
 	 * @param data rgb data (int[64], each int contains one RGB pixel)
 	 */
-	public void sendRgbFrame(byte addr, int[] data) {
-		sendFrame(addr, convertRgbToRainbowduino(data));
+	public boolean sendRgbFrame(byte addr, int[] data) {
+		return sendFrame(addr, convertRgbToRainbowduino(data));
 	}
 
+	/**
+	 * 
+	 * @param addr
+	 * @param data
+	 * @return
+	 */
+	private boolean didFrameChange(byte addr, byte data[]) {
+		String s = HelperUtils.getMD5(data);
+		
+		if (!lastDataMap.containsKey(addr)) {
+			//first run
+			lastDataMap.put(addr, s);
+			return true;
+		}
+		
+		//log.log(Level.INFO, "{0} // {1}",new Object [] {s, lastDataMap.get(addr)});
+		
+		if (lastDataMap.get(addr).equals(s)) {
+			//last frame was equal current frame, do not send it!
+			//log.log(Level.INFO, "do not send frame to {0}", addr);
+			return false;
+		}
+		//update new hash
+		lastDataMap.put(addr, s);
+		return true;
+	}
 	
 	/**
 	 * send a frame to the active rainbowduino the data needs to be in this format:
@@ -425,9 +386,15 @@ public class Rainbowduino implements Runnable {
 	 * @param data byte[3*8*4]
 	 * @param check wheter to perform sensity check
 	 */
-	public synchronized void sendFrame(byte addr, byte data[]) {
+	public synchronized boolean sendFrame(byte addr, byte data[]) {
 		//TODO stop if connection counter > n
 		//if (connectionErrorCounter>10000) {}
+		
+//		if (!didFrameChange(addr, data)) {
+//			return false;
+//		}
+		
+		//log.log(Level.INFO, "Send data to device {0}", addr);
 		
 		byte cmdfull[] = new byte[6+data.length];
 		cmdfull[0] = START_OF_CMD;
@@ -440,12 +407,7 @@ public class Rainbowduino implements Runnable {
 		}
 		cmdfull[data.length+5] = END_OF_DATA;
 		
-		try {
-			port.write(cmdfull);	
-		} catch (Exception e) {
-			log.warning("Failed to send data to serial port! errorcnt: "+connectionErrorCounter);
-			connectionErrorCounter++;
-		}
+		return writeSerialData(cmdfull);
 	}
 
 	/**
@@ -454,7 +416,7 @@ public class Rainbowduino implements Runnable {
 	 * 
 	 * @param addr the i2c slave address of the rainbowduino
 	 */
-	public synchronized void initRainbowduino(byte addr) {
+	public synchronized boolean initRainbowduino(byte addr) {
 		//TODO stop if connection counter > n
 		//if (connectionErrorCounter>10000) {}
 		
@@ -467,12 +429,7 @@ public class Rainbowduino implements Runnable {
 		cmdfull[5] = 0;
 		cmdfull[6] = END_OF_DATA;
 		
-		try {
-			port.write(cmdfull);	
-		} catch (Exception e) {
-			log.warning("Failed to send data to serial port! errorcnt: "+connectionErrorCounter);
-			connectionErrorCounter++;
-		}
+		return writeSerialData(cmdfull);
 	}
 	
 	/**
@@ -515,6 +472,64 @@ public class Rainbowduino implements Runnable {
 	 */
 	public synchronized List<Integer> getScannedI2cDevices() {
 		return scannedI2cDevices;
+	}
+	
+	/**
+	 * 
+	 * @param cmdfull
+	 * @return
+	 */
+	private boolean writeSerialData(byte[] cmdfull) {
+		//TODO handle the 128 byte buffer limit!
+		if (port==null) {
+			return false;
+		}
+		
+		try {
+			port.output.write(cmdfull);
+			//TODO flush or not??
+			//port.output.flush();
+		} catch (Exception e) {
+			log.log(Level.INFO, "Error sending serial data!", e);
+			connectionErrorCounter++;
+			return false;
+		}
+		
+		//wait for ack/nack
+		//TODO make this configurabe
+		int timeout=15; //wait up to 150ms
+		while (timeout > 0 && port.available() < 3) {
+			sleep(10); //in ms
+			timeout--;
+		}
+
+		byte[] msg = port.readBytes();
+		if (timeout < 1) {
+			log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
+			return false;
+		}
+
+		//INFO: MEEE [0, 0, 65, 67, 75, 0, 0]
+		for (int i=0; i<msg.length-3; i++) {
+			if (msg[i]== 'A' && msg[i+1]== 'C' && msg[i+2]== 'K') {
+				try {
+					this.arduinoBufferSize = msg[i+3];
+					this.arduinoErrorCounter = msg[i+4];					
+				} catch (Exception e) {
+					// TODO: handle exception
+				}
+				this.arduinoHeartbeat = System.currentTimeMillis();
+				return true;
+			}			
+		}
+		
+		if (msg.length==3 && msg[0]== 'A' && msg[1]== 'C' && msg[2]== 'K') {
+			this.arduinoHeartbeat = System.currentTimeMillis();
+			return true;			
+		}
+		
+		log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
+		return false;
 	}
 
 	/**
