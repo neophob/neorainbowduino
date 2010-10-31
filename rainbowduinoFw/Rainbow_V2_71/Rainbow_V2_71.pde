@@ -36,7 +36,6 @@ byte g_line,g_level;
 //read from bufCurr, write to !bufCurr
 //volatile   //the display is flickerling, brightness is reduced
 byte g_bufCurr;
-//byte interlace=0; 
 
 //flag to blit image
 volatile byte g_swapNow;

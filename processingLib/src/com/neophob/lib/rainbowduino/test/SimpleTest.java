@@ -1,4 +1,4 @@
-package com.neophob.lib.rainbowduino;
+package com.neophob.lib.rainbowduino.test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.List;
 
 import processing.core.PApplet;
+
+import com.neophob.lib.rainbowduino.Rainbowduino;
 
 /**
  * simply test class, only used to test the lib<br>

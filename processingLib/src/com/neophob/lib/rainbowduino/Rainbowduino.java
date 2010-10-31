@@ -66,8 +66,6 @@ public class Rainbowduino {
 	 */
 	public static final String VERSION = "1.4";
 
-	private static final String ACK_STRING = "ACK";
-	
 	private static final byte START_OF_CMD = 0x01;
 	private static final byte CMD_SENDFRAME = 0x03;
 	private static final byte CMD_PING = 0x04;
@@ -295,7 +293,7 @@ public class Rainbowduino {
 	 * 
 	 * @return wheter ping was successfull (arduino reachable) or not
 	 */
-	public synchronized boolean ping() {		
+	public boolean ping() {		
 		/*
 		 *  0   <startbyte>
 		 *  1   <i2c_addr>
@@ -325,7 +323,7 @@ public class Rainbowduino {
 	 * Hint: it takes some time for the scan to finish - wait 1-2s before you
 	 *       check the result.
 	 */
-	public synchronized boolean i2cBusScan() {		
+	public boolean i2cBusScan() {		
 		byte cmdfull[] = new byte[7];
 		cmdfull[0] = START_OF_CMD;
 		cmdfull[1] = 0;
@@ -386,13 +384,13 @@ public class Rainbowduino {
 	 * @param data byte[3*8*4]
 	 * @param check wheter to perform sensity check
 	 */
-	public synchronized boolean sendFrame(byte addr, byte data[]) {
+	public boolean sendFrame(byte addr, byte data[]) {
 		//TODO stop if connection counter > n
 		//if (connectionErrorCounter>10000) {}
 		
-//		if (!didFrameChange(addr, data)) {
-//			return false;
-//		}
+		if (!didFrameChange(addr, data)) {
+			return false;
+		}
 		
 		//log.log(Level.INFO, "Send data to device {0}", addr);
 		
@@ -416,7 +414,7 @@ public class Rainbowduino {
 	 * 
 	 * @param addr the i2c slave address of the rainbowduino
 	 */
-	public synchronized boolean initRainbowduino(byte addr) {
+	public boolean initRainbowduino(byte addr) {
 		//TODO stop if connection counter > n
 		//if (connectionErrorCounter>10000) {}
 		
@@ -470,7 +468,7 @@ public class Rainbowduino {
 	 * get the result of i2cBusScan() scan.
 	 * @return a list with I2C device address
 	 */
-	public synchronized List<Integer> getScannedI2cDevices() {
+	public List<Integer> getScannedI2cDevices() {
 		return scannedI2cDevices;
 	}
 	
@@ -479,7 +477,7 @@ public class Rainbowduino {
 	 * @param cmdfull
 	 * @return
 	 */
-	private boolean writeSerialData(byte[] cmdfull) {
+	private synchronized boolean writeSerialData(byte[] cmdfull) {
 		//TODO handle the 128 byte buffer limit!
 		if (port==null) {
 			return false;
@@ -497,7 +495,7 @@ public class Rainbowduino {
 		
 		//wait for ack/nack
 		//TODO make this configurabe
-		int timeout=15; //wait up to 150ms
+		int timeout=10; //wait up to 100ms
 		while (timeout > 0 && port.available() < 3) {
 			sleep(10); //in ms
 			timeout--;

@@ -1,10 +1,11 @@
-package com.neophob.lib.rainbowduino;
+package com.neophob.lib.rainbowduino.test;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import processing.core.PApplet;
+
+import com.neophob.lib.rainbowduino.Rainbowduino;
 
 /**
  * simply test class, only used to test the lib<br>
@@ -14,18 +15,18 @@ import processing.core.PApplet;
  * @author Michael Vogt / neophob.com
  *
  */
-public class TestOutput extends PApplet {
+public class TestSpeedyOutput extends PApplet {
 
 	Rainbowduino r;
 	int [] frame2, frame1;
-	int x;
+	int x,n;
 	
 	/**
 	 * 
 	 */
 	public void setup() {
 		r = new Rainbowduino(this);
-		frameRate(5);
+		frameRate(100);
 		
 		List<Integer> list = new ArrayList<Integer>();		
 
@@ -57,27 +58,20 @@ public class TestOutput extends PApplet {
 		for (int i=0; i<x/16;i++) {
 			frame1[i] = 0xffffff;
 		}
-		x+=16;
-		if (x>255) x=16;
 		
+		if (n%100==33) {
+			x+=16;
+			if (x>255) x=16;			
+		}
+		n++;
 		long l1 = System.currentTimeMillis();
 		boolean result5 = r.sendRgbFrame((byte)5, frame1);
 		long l2 = System.currentTimeMillis();
 		boolean result6 = r.sendRgbFrame((byte)6, frame1);
-		
-		System.out.println("6:"+result6+", "+(l2-l1)+"ms, n5:"+result5+" "+(System.currentTimeMillis()-l2)+"ms");
-		
-	    long lastHeatBeatTs = r.getArduinoHeartbeat();
-	    println(
-	        "updated: "+new Date(lastHeatBeatTs).toGMTString()+
-	        " Serial Buffer Size: "+r.getArduinoBufferSize()+
-	        " last error: "+r.getArduinoErrorCounter()
-	    );
-	    slp(1500);
 	}
 	
 	public static void main(String args[]) {
-		PApplet.main(new String[] { "com.neophob.lib.rainbowduino.TestOutput" });
+		PApplet.main(new String[] { "com.neophob.lib.rainbowduino.TestSpeedyOutput" });
 	}
 
 }
