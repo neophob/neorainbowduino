@@ -63,7 +63,7 @@ public class TestSerial extends PApplet {
 	}
 	
 	public static void main(String args[]) {
-		PApplet.main(new String[] { "com.neophob.lib.rainbowduino.TestOutput" });
+		PApplet.main(new String[] { "com.neophob.lib.rainbowduino.test.TestOutput" });
 	}
 
 }

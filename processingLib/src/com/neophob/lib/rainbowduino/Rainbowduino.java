@@ -319,9 +319,12 @@ public class Rainbowduino {
 		cmdfull[5] = 0x02;
 		cmdfull[6] = END_OF_DATA;
 
-		//do not use the processing command, as it displays ugly error messages on the console!
-		//port.write(cmdfull);
-		return writeSerialData(cmdfull);
+		try {
+			writeSerialData(cmdfull);
+			return waitForAck();			
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
@@ -340,7 +343,12 @@ public class Rainbowduino {
 		cmdfull[5] = 0;
 		cmdfull[6] = END_OF_DATA;
 		
-		return writeSerialData(cmdfull);
+		try {
+			writeSerialData(cmdfull);
+			return waitForI2cResultAndAck();			
+		} catch (Exception e) {
+			return false;
+		}
 	}
 	
 	
@@ -413,7 +421,12 @@ public class Rainbowduino {
 		}
 		cmdfull[data.length+5] = END_OF_DATA;
 		
-		return writeSerialData(cmdfull);
+		try {
+			writeSerialData(cmdfull);
+			return waitForAck();			
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
@@ -435,7 +448,12 @@ public class Rainbowduino {
 		cmdfull[5] = 0;
 		cmdfull[6] = END_OF_DATA;
 		
-		return writeSerialData(cmdfull);
+		try {
+			writeSerialData(cmdfull);
+			return waitForAck();			
+		} catch (Exception e) {
+			return false;
+		}
 	}
 	
 	/**
@@ -483,12 +501,11 @@ public class Rainbowduino {
 	/**
 	 * send the data to the serial port
 	 * @param cmdfull
-	 * @return true if ack received, false if not
 	 */
-	private synchronized boolean writeSerialData(byte[] cmdfull) {
+	private synchronized void writeSerialData(byte[] cmdfull) throws SerialPortException {
 		//TODO handle the 128 byte buffer limit!
 		if (port==null) {
-			return false;
+			throw new SerialPortException("port is null");
 		}
 		
 		try {
@@ -498,9 +515,15 @@ public class Rainbowduino {
 		} catch (Exception e) {
 			log.log(Level.INFO, "Error sending serial data!", e);
 			connectionErrorCounter++;
-			return false;
-		}
-		
+			throw new SerialPortException("cannot send serial data: "+e);
+		}		
+	}
+	
+	/**
+	 * read data from serial port, wait for ACK
+	 * @return true if ack received, false if not
+	 */
+	private synchronized boolean waitForAck() {
 		//wait for ack/nack
 		//TODO make this configurabe
 		int timeout=10; //wait up to 100ms
@@ -535,8 +558,67 @@ public class Rainbowduino {
 		}
 		
 		log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
-		return false;
+		return false;		
 	}
+	
+	
+	/**
+	 * read data from serial port, wait for ACK
+	 * @return true if ack received, false if not
+	 */
+	private synchronized boolean waitForI2cResultAndAck() {
+		//wait for ack/nack
+		//TODO make this configurabe
+		int timeout=10; //wait up to 100ms
+		while (timeout > 0 && port.available() < 3) {
+			sleep(10); //in ms
+			timeout--;
+		}
+
+		byte[] msg = port.readBytes();
+		if (timeout < 1) {
+			log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
+			return false;
+		}
+
+		
+		for (int i=0; i<msg.length-3; i++) {
+			if (msg[i]==START_OF_CMD && msg[i+1]==CMD_SCAN_I2C_BUS) {
+				//process i2c scanning result
+				for (int x=2; x<msg.length; x++) {                                                              
+					int n;
+					try {
+						n = Integer.parseInt(""+msg[x]);
+						if (n==255 || n<0) {
+							break;
+						}
+						log.log(Level.INFO, "Reply from I2C device: #{0}", n);
+						scannedI2cDevices.add(n);
+					} catch (Exception e) {}
+				}
+			}
+
+			if (msg[i]== 'A' && msg[i+1]== 'C' && msg[i+2]== 'K') {
+				try {
+					this.arduinoBufferSize = msg[i+3];
+					this.arduinoErrorCounter = msg[i+4];					
+				} catch (Exception e) {
+					// TODO: handle exception
+				}
+				this.arduinoHeartbeat = System.currentTimeMillis();
+				return true;
+			}			
+		}
+		
+		if (msg.length==3 && msg[0]== 'A' && msg[1]== 'C' && msg[2]== 'K') {
+			this.arduinoHeartbeat = System.currentTimeMillis();
+			return true;			
+		}
+		
+		log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
+		return false;		
+	}
+
 
 	/**
 	 * convert rgb image data to rainbowduino compatible format

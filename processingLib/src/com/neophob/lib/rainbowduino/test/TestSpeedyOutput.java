@@ -71,7 +71,7 @@ public class TestSpeedyOutput extends PApplet {
 	}
 	
 	public static void main(String args[]) {
-		PApplet.main(new String[] { "com.neophob.lib.rainbowduino.TestSpeedyOutput" });
+		PApplet.main(new String[] { "com.neophob.lib.rainbowduino.test.TestSpeedyOutput" });
 	}
 
 }
