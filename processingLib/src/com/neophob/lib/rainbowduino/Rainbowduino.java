@@ -536,7 +536,7 @@ public class Rainbowduino {
 		}
 
 		//INFO: MEEE [0, 0, 65, 67, 75, 0, 0]
-		for (int i=0; i<msg.length-3; i++) {
+		for (int i=0; i<msg.length-2; i++) {
 			if (msg[i]== 'A' && msg[i+1]== 'C' && msg[i+2]== 'K') {
 				try {
 					this.arduinoBufferSize = msg[i+3];
@@ -547,11 +547,6 @@ public class Rainbowduino {
 				this.arduinoHeartbeat = System.currentTimeMillis();
 				return true;
 			}			
-		}
-		
-		if (msg.length==3 && msg[0]== 'A' && msg[1]== 'C' && msg[2]== 'K') {
-			this.arduinoHeartbeat = System.currentTimeMillis();
-			return true;			
 		}
 		
 		log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
