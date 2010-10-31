@@ -11,17 +11,13 @@ void setup()
 {
   frameRate(5);
   simpleImage = new int[64];
-  
-  //initialize library
-  rainbowduino = new Rainbowduino(this);
-  
+    
   //create a list with i2c slave destination (=rainbowduinos)
   List<Integer> i2cDest = new ArrayList<Integer>();
   i2cDest.add(6);
   try {
-    //let the library search all available serial ports and try to send
-    //the initialize image to all slaves
-    rainbowduino.initPort(i2cDest);
+      //initialize library
+      rainbowduino = new Rainbowduino(this, i2cDest);
   } catch (Exception e) {
     //if an error occours handle it here!
     //we just print out the stacktrace and exit.
