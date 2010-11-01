@@ -1,12 +1,6 @@
 package com.neophob.lib.rainbowduino.test;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import processing.core.PApplet;
-
-import com.neophob.lib.rainbowduino.Rainbowduino;
+import com.neophob.lib.rainbowduino.HelperUtils;
 
 /**
  * simply test class, only used to test the lib<br>
@@ -16,7 +10,7 @@ import com.neophob.lib.rainbowduino.Rainbowduino;
  * @author Michael Vogt / neophob.com
  *
  */
-public class TestSerial {
+public class TestMD5 {
 	
 	public static void main(String args[]) {
 		byte test1[] = new byte[] {1,2,3,4,5,6,7,8,9};
