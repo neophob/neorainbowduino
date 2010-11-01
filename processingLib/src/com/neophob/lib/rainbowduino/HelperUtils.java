@@ -3,6 +3,8 @@ package com.neophob.lib.rainbowduino;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Various Helper Methods
@@ -14,6 +16,8 @@ import java.security.NoSuchAlgorithmException;
  */
 public class HelperUtils {
 
+	static Logger log = Logger.getLogger(HelperUtils.class.getName());
+	
 	/**
 	 * get md5 checksum of an byte array
 	 * @param input
@@ -32,7 +36,8 @@ public class HelperUtils {
             return hashtext;
         }
         catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+        	log.log(Level.WARNING, "Failed to calculate MD5 sum: {0}", e);
+            return "";
         }
     }
 }
