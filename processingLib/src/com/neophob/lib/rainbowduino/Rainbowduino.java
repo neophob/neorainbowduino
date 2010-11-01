@@ -428,10 +428,16 @@ public class Rainbowduino {
 		
 		try {
 			writeSerialData(cmdfull);
-			return waitForAck();			
+			if (waitForAck()) {
+				//frame was send successful
+				return true;
+			}
 		} catch (Exception e) {
-			return false;
 		}
+		
+		//an error occoured sending the frame, make sure we resend next time
+		lastDataMap.put(addr, "");
+		return false;
 	}
 
 	/**
@@ -523,15 +529,15 @@ public class Rainbowduino {
 	private synchronized boolean waitForAck() {
 		//wait for ack/nack
 		//TODO make this configurabe
-		int timeout=10; //wait up to 100ms
-		while (timeout > 0 && port.available() < 3) {
+		int timeout=5; //wait up to 50ms
+		while (timeout > 0 && port.available() < 5) {
 			sleep(10); //in ms
 			timeout--;
 		}
 
 		byte[] msg = port.readBytes();
 		if (timeout < 1) {
-			log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
+			log.log(Level.INFO, "No serial data available!");
 			return false;
 		}
 

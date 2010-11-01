@@ -21,12 +21,16 @@ public class TestOutput extends PApplet {
 	Rainbowduino r;
 	int [] frame2, frame1;
 	int x;
+	long falseCounter=0;
+	long okCount=0;
+	long muchTime=0;
+	long totalTime=0;
 	
 	/**
 	 * 
 	 */
 	public void setup() {		
-		frameRate(5);
+		frameRate(150);
 		
 		List<Integer> list = new ArrayList<Integer>();		
 
@@ -51,6 +55,7 @@ public class TestOutput extends PApplet {
 	} 
 	
 	public void draw() {  
+		if ((falseCounter+okCount)>2000) return;
 		
 		for (int i=0; i<64;i++) {
 			frame1[i]=x;//(int)((x&255)<<16 | (x%255)<<8 | (x&255));
@@ -65,16 +70,31 @@ public class TestOutput extends PApplet {
 		boolean result5 = r.sendRgbFrame((byte)5, frame1);
 		long l2 = System.currentTimeMillis();
 		boolean result6 = r.sendRgbFrame((byte)6, frame1);
+
+		l1=l2-l1;
+		l2=System.currentTimeMillis()-l2;
 		
-		System.out.println("6:"+result6+", "+(l2-l1)+"ms, n5:"+result5+" "+(System.currentTimeMillis()-l2)+"ms");
+		if (!result5) falseCounter++; else okCount++;
+		if (!result6) falseCounter++; else okCount++;
 		
+		if (l1>35) muchTime++;
+		if (l2>35) muchTime++;
+		
+		totalTime+=l1;
+		totalTime+=l2;
+		
+		float rate = (100.f/(float)(falseCounter+okCount))*falseCounter;
+		System.out.println("6:"+result6+", "+l1+"ms, n5:"+result5+" "+l2+"ms, false rate: "+rate+", long: "+muchTime+", totalTime: "+totalTime);
+		
+		if (r.getArduinoErrorCounter()!=0) {
 	    long lastHeatBeatTs = r.getArduinoHeartbeat();
 	    println(
 	        "updated: "+new Date(lastHeatBeatTs).toGMTString()+
 	        " Serial Buffer Size: "+r.getArduinoBufferSize()+
 	        " last error: "+r.getArduinoErrorCounter()
 	    );
-	    slp(1500);
+		}
+	    
 	}
 	
 	public static void main(String args[]) {
