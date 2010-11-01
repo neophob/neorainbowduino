@@ -21,7 +21,8 @@ extern "C" {
 }
 
 
-//57600 - 60ms to send an image
+//to draw a frame we need arround 20ms to send an image. the serial baudrate is
+//NOT the bottleneck. 
 #define BAUD_RATE 115200
 
 #define CLEARCOL 51 //00110011
@@ -46,17 +47,32 @@ extern "C" {
 //this should match RX_BUFFER_SIZE from HardwareSerial.cpp
 byte serInStr[128]; 	 				 // array that will hold the serial input string
 
+//counter for 2000 frames
+//http://www.ftdichip.com/Support/Documents/AppNotes/AN232B-04_DataLatencyFlow.pdf
+//there is a 16ms delay until the buffer is full, here are some measurements
+//time is round trip time from/to java
+//size  errorrate       frames>35ms  time for 2000frames  time/frame  time/frame worstcase
+//5  -> rate: 0.0,      long: 156,   totalTime: 44250     22.13ms
+//8  -> rate: 5.894106, long: 38,    totalTime: 41184     20.59ms     21.83ms
+//16 -> rate: 7.092907, long: 4,     totalTime: 40155     20.07ms     21.48ms
+//32 -> rate: 6.943056, long: 5,     totalTime: 39939     19.97ms     21.36ms
+//62 -> rate: 22.97702, long: 7,     totalTime: 33739     16.89ms     20.58ms
+//64 -> rate: 24.22577, long: 3,     totalTime: 33685     16.84ms     20.89ms
+//-> I use 16b - not the fastest variant but more accurate
+
+#define SERIALBUFFERSIZE 16
+byte serialResonse[SERIALBUFFERSIZE];
+
 byte g_errorCounter;
 
 //send status back to library
 static void sendAck() {
-  byte response[5];
-  response[0] = 'A';
-  response[1] = 'C';
-  response[2] = 'K';
-  response[3] = Serial.available();
-  response[4] = g_errorCounter;  
-  Serial.write(response, 5);
+  serialResonse[0] = 'A';
+  serialResonse[1] = 'C';
+  serialResonse[2] = 'K';
+  serialResonse[3] = Serial.available();
+  serialResonse[4] = g_errorCounter;  
+  Serial.write(serialResonse, SERIALBUFFERSIZE);
   //Clear bufer
  // Serial.flush();
 }
@@ -114,6 +130,7 @@ void setup() {
   Wire.begin(); // join i2c bus (address optional for master)
   
   pinMode(13, OUTPUT);
+  memset(serialResonse, 0, SERIALBUFFERSIZE);
 
   //im your slave and wait for your commands, master!
   Serial.begin(BAUD_RATE); //Setup high speed Serial
