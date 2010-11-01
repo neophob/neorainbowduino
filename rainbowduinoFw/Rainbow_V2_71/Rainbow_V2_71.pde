@@ -44,8 +44,12 @@ volatile byte g_swapNow;
 volatile byte g_readI2c;
 byte g_circle;
 
+//data marker
 #define START_OF_DATA 0x10
 #define END_OF_DATA 0x20
+
+//FPS
+#define FPS 80.0f
 
 void setup() {
   DDRD=0xff;        // Configure ports (see http://www.arduino.cc/en/Reference/PortManipulation): digital pins 0-7 as OUTPUT
@@ -70,7 +74,7 @@ void setup() {
   // are display errors!
 
   //redraw screen 80 times/s
-  FlexiTimer2::set(1, 1.0f/(128.0f*80.0f), displayNextLine);
+  FlexiTimer2::set(1, 1.0f/(128.0f*FPS), displayNextLine);
   FlexiTimer2::start();                            //start interrupt code
 }
 
