@@ -12,7 +12,6 @@ libraries to patch:
  	wire.h: #define BUFFER_LENGTH 98 (was 32)
 
 */
-//#define TWI_BUFFER_LENGTH 98
 
 #include <Wire.h>
 #include "WProgram.h"
@@ -34,12 +33,13 @@ extern "C" {
 #define CMD_INIT_RAINBOWDUINO 0x05
 #define CMD_SCAN_I2C_BUS 0x06
 
-#define SERIAL_WAIT_TIME_IN_MS 20
+#define SERIAL_WAIT_TIME_IN_MS 8
 
 //I2C definitions
 #define START_OF_DATA 0x10
 #define END_OF_DATA 0x20
 
+//Static start+end address for i2x scan
 #define START_I2C_SCAN 1
 #define END_I2C_SCAN 101
 
@@ -48,6 +48,7 @@ byte serInStr[128]; 	 				 // array that will hold the serial input string
 
 byte g_errorCounter;
 
+//send status back to library
 static void sendAck() {
   byte response[5];
   response[0] = 'A';
@@ -127,8 +128,8 @@ void loop() {
   digitalWrite(13, LOW);
   // see if we got a proper command string yet
   if (readCommand(serInStr) == 0) {
-    //wait 50ms
-    delay(2); 
+    //wait 1ms
+    delay(1); 
     return;
   }
 
@@ -168,6 +169,7 @@ void loop() {
         break;
   }
         
+  //send ack to library - command processed
   sendAck();
     
 }
@@ -199,12 +201,7 @@ static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
 #define HEADER_SIZE 5
 byte readCommand(byte *str) {
   byte b,i,sendlen;
-/*  str[2]=96;
-  str[1]=6;
-  str[3]=3;
-for (int i=0; i<96; i++) 
-str[HEADER_SIZE+i]=0x11;
-return 96;*/
+
   //wait until we get a CMD_START_BYTE or queue is empty
   i=0;
   while (Serial.available()>0 && i==0) {
@@ -215,6 +212,7 @@ return 96;*/
   }
 
   if (i==0) {
+    //failed to get data
     g_errorCounter=101;
     return 0;    
   }
@@ -235,14 +233,10 @@ return 96;*/
 // --- START HEADER CHECK  
   //check sendlen, TODO: its possible that sendlen is 0!
   sendlen = str[2];
-/*  if( sendlen == 0 ) {
-    errorCounter=103;
-    return 0;
-  }*/
   
   //check if data is correct, 0x10 = START_OF_DATA
   b = str[4];
-  if ( b != 0x10 ) {
+  if (b != START_OF_DATA) {
     g_errorCounter=104;
     return 0;
   }
@@ -266,7 +260,7 @@ return 96;*/
 
   //check if data is correct, 0x20 = END_OF_DATA
   b = str[HEADER_SIZE+sendlen];
-  if( b != 0x20 ) {
+  if (b != END_OF_DATA) {
     g_errorCounter=106;
     return 0;
   }
