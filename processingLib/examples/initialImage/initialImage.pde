@@ -20,7 +20,7 @@ void setup() {
     } else output+=", ";
     cnt++;
   }
-  saveStrings("data/image.dat", line);
+  saveStrings("data/image.txt", line);
   saveBytes("data/raw.dat", neorainbowduinoImage);
   noLoop();
 }
