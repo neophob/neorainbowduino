@@ -548,7 +548,7 @@ public class Rainbowduino {
 					this.arduinoBufferSize = msg[i+3];
 					this.arduinoErrorCounter = msg[i+4];					
 				} catch (Exception e) {
-					// TODO: handle exception
+					// we failed to update statistics...
 				}
 				this.arduinoHeartbeat = System.currentTimeMillis();
 				return true;
@@ -568,7 +568,7 @@ public class Rainbowduino {
 		//wait for ack/nack
 		//TODO make this configurabe
 		int timeout=10; //wait up to 100ms
-		while (timeout > 0 && port.available() < 3) {
+		while (timeout > 0 && port.available() < 16) {
 			sleep(10); //in ms
 			timeout--;
 		}
@@ -580,7 +580,7 @@ public class Rainbowduino {
 		}
 
 		
-		for (int i=0; i<msg.length-3; i++) {
+		for (int i=0; i<msg.length-2; i++) {
 			if (msg[i]==START_OF_CMD && msg[i+1]==CMD_SCAN_I2C_BUS) {
 				//process i2c scanning result
 				for (int x=2; x<msg.length; x++) {                                                              
@@ -601,16 +601,11 @@ public class Rainbowduino {
 					this.arduinoBufferSize = msg[i+3];
 					this.arduinoErrorCounter = msg[i+4];					
 				} catch (Exception e) {
-					// TODO: handle exception
+					// we failed to update statistics...
 				}
 				this.arduinoHeartbeat = System.currentTimeMillis();
 				return true;
 			}			
-		}
-		
-		if (msg.length==3 && msg[0]== 'A' && msg[1]== 'C' && msg[2]== 'K') {
-			this.arduinoHeartbeat = System.currentTimeMillis();
-			return true;			
 		}
 		
 		log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
