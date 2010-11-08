@@ -38,13 +38,14 @@ public class TestSerial extends PApplet {
 			e.printStackTrace();
 		}
 		
-		
+		if (r.getArduinoErrorCounter()!=0) {
 	    long lastHeatBeatTs = r.getArduinoHeartbeat();
 	    println(
 	        "updated: "+new Date(lastHeatBeatTs).toGMTString()+
 	        " Serial Buffer Size: "+r.getArduinoBufferSize()+
 	        " last error: "+r.getArduinoErrorCounter()
 	    );
+		}
 
 	}
 	
