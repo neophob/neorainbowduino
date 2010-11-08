@@ -1,6 +1,10 @@
 private static final int NR_OF_LED_HORIZONTAL = 8;
 private static final int NR_OF_LED_VERTICAL = NR_OF_LED_HORIZONTAL ;
 
+/**
+this file create an include file (well, sort of) for the rainbowduino
+firmware, that can be used as initial image.
+*/
 void setup() {
   PImage pic = loadImage("n.png");
   pic.loadPixels();
