@@ -9,6 +9,9 @@ Rainbowduino rainbowduino;
 //buffer for our image data, must be 8*8 pixel
 int[] simpleImage;
 
+/**
+show random pixels on rainbowduinos with i2c address 5 and 6
+*/
 void setup() 
 {
   frameRate(10);
