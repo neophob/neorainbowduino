@@ -565,8 +565,8 @@ public class Rainbowduino {
 	 * @return true if ack received, false if not
 	 */
 	private synchronized boolean waitForAck() {
-		//wait for ack/nack
-		//TODO make this configurabe
+		//TODO some more tuning is needed here.
+		long start = System.currentTimeMillis();
 		int timeout=5; //wait up to 50ms
 		while (timeout > 0 && port.available() < 5) {
 			sleep(10); //in ms
@@ -575,7 +575,7 @@ public class Rainbowduino {
 
 		byte[] msg = port.readBytes();
 		if (timeout < 1) {
-			log.log(Level.INFO, "No serial data available!");
+			log.log(Level.INFO, "No serial data available, duration: {0}", System.currentTimeMillis()-start);
 			return false;
 		}
 
@@ -593,7 +593,8 @@ public class Rainbowduino {
 			}			
 		}
 		
-		log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
+		log.log(Level.INFO, "Invalid serial data {0}, duration: {1}", 
+				new String[] {Arrays.toString(msg), ""+(System.currentTimeMillis()-start)});
 		return false;		
 	}
 	
