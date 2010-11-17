@@ -159,8 +159,6 @@ void DispshowFrame(void) {
 //           so this interrupt needs to be called 128 times to draw all pixels (8 lines * 16 brightness levels) 
 //           using a 10khz resolution means, we get 10000/128 = 78.125 frames/s 
 void displayNextLine() { 
-//    g_line=0;
-//    for (g_level=0; g_level<15;) {
   flash_next_line();  // scan the next line in LED matrix level by level. 
   g_line++;                                      // process all 8 lines of the led matrix 
   if(g_line>7) {                                 // when have scaned all LED's, back to line 0 and add the level 
@@ -182,21 +180,31 @@ void displayNextLine() {
   }
 }
 
+/*rip from tobi
+  disable_oe;
+  enable_row(row);
+  le_high;
+  draw_color( (current_level < level) ? b : 0 );
+  draw_color( (current_level < level) ? r : 0 );
+  draw_color( (current_level < level) ? g : 0 );
+  le_low;
+  enable_oe
+*/
 
 // scan one line
 void flash_next_line() {
   disable_oe;            // TODO: what does this do?
-  close_all_line;        // TODO: what does this do?
+  close_all_line;        // guess thats not really needed!
   shift_24_bit();        // feed the leds
 
-  //does this "select" the current line?
+  //select the current line (variable g_line)
   if(g_line < 3) {    // Open the line and close others
-    PORTB  = (PINB & ~0x07) | 0x04 >> g_line;
-    PORTD  = (PIND & ~0xF8);
+    PORTB = (PINB & ~0x07) | 0x04 >> g_line;
+    PORTD = (PIND & ~0xF8);
   } 
   else {
-    PORTB  = (PINB & ~0x07);
-    PORTD  = (PIND & ~0xF8) | 0x80 >> (g_line - 3);
+    PORTB = (PINB & ~0x07);
+    PORTD = (PIND & ~0xF8) | 0x80 >> (g_line - 3);
   }
 
   enable_oe;
@@ -213,7 +221,7 @@ void shift_24_bit() {
       //get pixel from buffer
       data1=buffer[g_bufCurr][color][g_line][row]&0x0f;
       data0=buffer[g_bufCurr][color][g_line][row]>>4;
-
+// TODO clk_rising, guess 2 times should be enough!
       if(data0>g_level) { // is this pixel visible in current level (=brightness)
         shift_data_1;     // yes - light on
         clk_rising;
