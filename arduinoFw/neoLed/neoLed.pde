@@ -107,11 +107,13 @@ int send_initial_image(byte i2caddr) {
 // If result==0, address was found, otherwise, address wasn't found
 // (can use result to potentially get other status on the I2C bus, see twi.c)
 // Assumes Wire.begin() has already been called
+// HINT: maximal 14 devices can be scanned!
 void scanI2CBus() {
-  Serial.write(CMD_START_BYTE);
-  Serial.write(CMD_SCAN_I2C_BUS);
-  
-  byte rc;
+  memset(serialResonse, 0, SERIALBUFFERSIZE);
+  serialResonse[0] = CMD_START_BYTE;
+  serialResonse[1] = CMD_SCAN_I2C_BUS;
+
+  byte rc,i=2;
   byte data = 0; // not used, just an address to feed to twi_writeTo()
   for (byte addr = START_I2C_SCAN; addr <= END_I2C_SCAN; addr++) {
   //rc 0 = success
@@ -119,10 +121,12 @@ void scanI2CBus() {
     rc = twi_writeTo(addr, &data, 0, 1);
     digitalWrite(13, LOW);
     if (rc==0) {
-    	Serial.write(addr);
+      serialResonse[i]=addr;
+      if (i<16) i++;
     }
   }
-  Serial.write(255);
+  Serial.write(serialResonse, SERIALBUFFERSIZE);
+  memset(serialResonse, 0, SERIALBUFFERSIZE);
 }
 
 
@@ -145,7 +149,7 @@ void loop() {
   digitalWrite(13, LOW);
   // see if we got a proper command string yet
   if (readCommand(serInStr) == 0) {
-    //wait 1ms
+    //wait 50ms
     delay(1); 
     return;
   }
@@ -281,7 +285,7 @@ byte readCommand(byte *str) {
     g_errorCounter=106;
     return 0;
   }
-  
+
   //return data size (without meta data)
   return sendlen;
 }
