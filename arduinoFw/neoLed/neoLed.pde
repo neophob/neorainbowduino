@@ -1,17 +1,33 @@
 /*
-arduino serial-i2c-gateway, by michael vogt / neophob.com 2010
-published as i-dont-give-a-shit-about-any-license
-
-based on blinkm firmware by thingM and
-"daft punk" firmware by Scott C / ThreeFN 
-
-libraries to patch:
- Wire: 
- 	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
-                       #define TWI_BUFFER_LENGTH 98 (was 32)
- 	wire.h: #define BUFFER_LENGTH 98 (was 32)
-
-*/
+ * arduino serial-i2c-gateway, Copyright (C) 2010 michael vogt <michu@neophob.com>
+ *  
+ * based on 
+ * -blinkm firmware by thingM
+ * -"daft punk" firmware by Scott C / ThreeFN 
+ *  
+ * libraries to patch:
+ * Wire: 
+ *  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
+ *                    #define TWI_BUFFER_LENGTH 98 (was 32)
+ *  	wire.h: #define BUFFER_LENGTH 98 (was 32)
+ *
+ * This file is part of neorainbowduino.
+ *
+ * neorainbowduino is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+ *
+ * neorainbowduino is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * 	
+ */
 
 #include <Wire.h>
 #include "WProgram.h"
