@@ -1,19 +1,37 @@
 /*
-arduino serial-i2c-gateway, by michael vogt / neophob.com 2010
- published as i-dont-give-a-shit-about-any-license
- 
- based on blinkm firmware by thingM and
- "daft punk" firmware by Scott C / ThreeFN 
- 
- needed libraries:
- -FlexiTimer (http://github.com/wimleers/flexitimer2)
- 
- libraries to patch:
- Wire: 
- 	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
- #define TWI_BUFFER_LENGTH 98 (was 32)
- 	wire.h: #define BUFFER_LENGTH 98 (was 32)
- 	
+ * rainbowduino firmware, Copyright (C) 2010 michael vogt <michu@neophob.com>
+ *  
+ * based on 
+ * -blinkm firmware by thingM
+ * -"daft punk" firmware by Scott C / ThreeFN 
+ * -rngtng firmware by Tobias Bielohlawek -> http://www.rngtng.com
+ *  
+ * needed libraries:
+ * -FlexiTimer (http://github.com/wimleers/flexitimer2)
+ *  
+ * libraries to patch:
+ * Wire: 
+ *  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
+ *                    #define TWI_BUFFER_LENGTH 98 (was 32)
+ *  	wire.h: #define BUFFER_LENGTH 98 (was 32)
+ *
+ *
+ * This file is part of neorainbowduino.
+ *
+ * neorainbowduino is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+ *
+ * neorainbowduino is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * 	
  */
 
 #include <Wire.h>
@@ -157,7 +175,8 @@ void DispshowFrame(void) {
 // function: draw whole image for brightness 0, then for brightness 1... this will 
 //           create the brightness effect. 
 //           so this interrupt needs to be called 128 times to draw all pixels (8 lines * 16 brightness levels) 
-//           using a 10khz resolution means, we get 10000/128 = 78.125 frames/s 
+//           using a 10khz resolution means, we get 10000/128 = 78.125 frames/s
+// TODO: try to implement an interlaced update at the same rate. 
 void displayNextLine() { 
   flash_next_line();  // scan the next line in LED matrix level by level. 
   g_line++;                                      // process all 8 lines of the led matrix 
@@ -180,16 +199,6 @@ void displayNextLine() {
   }
 }
 
-/*rip from tobi
-  disable_oe;
-  enable_row(row);
-  le_high;
-  draw_color( (current_level < level) ? b : 0 );
-  draw_color( (current_level < level) ? r : 0 );
-  draw_color( (current_level < level) ? g : 0 );
-  le_low;
-  enable_oe
-*/
 
 // scan one line
 void flash_next_line() {
