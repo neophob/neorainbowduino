@@ -194,10 +194,8 @@ void displayNextLine() {
 // scan one line
 void flash_next_line() {
   disable_oe;            // TODO: what does this do?
-  close_all_line;        // guess thats not really needed!
-  shift_24_bit();        // feed the leds
 
-  //select the current line (variable g_line)
+  //open the current line (variable g_line)
   if(g_line < 3) {    // Open the line and close others
     PORTB = (PINB & ~0x07) | 0x04 >> g_line;
     PORTD = (PIND & ~0xF8);
@@ -206,6 +204,8 @@ void flash_next_line() {
     PORTB = (PINB & ~0x07);
     PORTD = (PIND & ~0xF8) | 0x80 >> (g_line - 3);
   }
+
+  shift_24_bit();        // feed the leds
 
   enable_oe;
 }
