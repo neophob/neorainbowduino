@@ -60,11 +60,11 @@ public class TestOutput extends PApplet {
 		for (int i=0; i<64;i++) {
 			frame1[i]=x;//(int)((x&255)<<16 | (x%255)<<8 | (x&255));
 		}
-		for (int i=0; i<x/16;i++) {
+		for (int i=0; i<x/4;i++) {
 			frame1[i] = 0xffffff;
 		}
-		x+=16;
-		if (x>255) x=16;
+		x+=4;
+		if (x>255) x=4;
 		
 		long l1 = System.currentTimeMillis();
 		boolean result5 = r.sendRgbFrame((byte)5, frame1);

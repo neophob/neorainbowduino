@@ -14,7 +14,6 @@ public class TestPApplet extends PApplet {
 
 	public void setup() {
 		List<Integer> list = new ArrayList<Integer>();		
-
 		list.add(5);list.add(6);
 		try {
 			r = new Rainbowduino(this, list, "/dev/tty.usbserial-A9007QOH");
@@ -23,14 +22,19 @@ public class TestPApplet extends PApplet {
 			e.printStackTrace();
 		}
 
-		frameRate(20);
+		frameRate(16);
+		strokeWeight(32);
 		ellipseMode(CORNER);
 		size(SIZE, SIZE);	
+		background(0,0,92);	
 	}
 
 	public void draw() {
-		background(0);
-		int r2 = 30+(int)random(SIZE/2);
+		if (random(4)<1) {
+			//clear background
+			background(0,0,92);			
+		}
+		int r2 = 32+(int)random(SIZE/2);
 		int x = (int)random(SIZE-r2);
 		int y = (int)random(SIZE-r2);
 		rect(x, y, r2, r2);

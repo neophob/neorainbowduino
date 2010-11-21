@@ -1,6 +1,6 @@
 package com.neophob.lib.rainbowduino.test;
 
-import com.neophob.lib.rainbowduino.HelperUtils;
+import com.neophob.lib.rainbowduino.RainbowduinoHelper;
 
 /**
  * simply test class, only used to test the lib<br>
@@ -16,9 +16,9 @@ public class TestMD5 {
 		byte test1[] = new byte[] {1,2,3,4,5,6,7,8,9};
 		byte test2[] = new byte[] {1,2,3,5,4,6,7,8,9};
 		
-		System.out.println(HelperUtils.getMD5(test1));
-		System.out.println(HelperUtils.getMD5(test2));
-		System.out.println(HelperUtils.getMD5(test1));
+		System.out.println(RainbowduinoHelper.getMD5(test1));
+		System.out.println(RainbowduinoHelper.getMD5(test2));
+		System.out.println(RainbowduinoHelper.getMD5(test1));
 	}
 
 }
