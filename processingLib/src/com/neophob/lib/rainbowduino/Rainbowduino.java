@@ -81,6 +81,8 @@ public class Rainbowduino {
 	private int baud = 115200;
 	private Serial port;
 	
+	private boolean serialPortReady=false;
+	
 	private long arduinoHeartbeat;
 	private int arduinoBufferSize;
 	
@@ -168,6 +170,7 @@ public class Rainbowduino {
 			log.log(Level.INFO,	"open port: {0}", portName);
 			serialPortName = portName;
 			openPort(portName, rainbowduinoAddr);
+			serialPortReady = true;
 		} else {
 			//try to find the port
 			String[] ports = Serial.list();
@@ -179,14 +182,14 @@ public class Rainbowduino {
 				//catch all, there are multiple exception to catch (NoSerialPortFoundException, PortInUseException...)
 				} catch (Exception e) {
 					// search next port...
-				}				
+				}
 			}
 		}
 		
 		if (port==null) {
 			throw new NoSerialPortFoundException("Error: no serial port found!");
 		}
-		
+		serialPortReady = true;
 		log.log(Level.INFO,	"found serial port: "+serialPortName);
 	}
 
@@ -195,7 +198,8 @@ public class Rainbowduino {
 	 * clean up library
 	 */
 	public void dispose() {
-		if(connected()) port.stop();
+		if (connected()) port.stop();
+		serialPortReady = false;
 	}
 
 
@@ -503,13 +507,12 @@ public class Rainbowduino {
 	private synchronized void writeSerialData(byte[] cmdfull) throws SerialPortException {
 		//TODO handle the 128 byte buffer limit!
 		if (port==null) {
-			throw new SerialPortException("port is null");
+			throw new SerialPortException("port is not ready!");
 		}
 		
 		try {
 			port.output.write(cmdfull);
-			//TODO flush or not?? -> do NOT!
-			//port.output.flush();
+			//DO NOT flush the buffer
 		} catch (Exception e) {
 			log.log(Level.INFO, "Error sending serial data!", e);
 			connectionErrorCounter++;
@@ -524,15 +527,15 @@ public class Rainbowduino {
 	private synchronized boolean waitForAck() {
 		//TODO some more tuning is needed here.
 		long start = System.currentTimeMillis();
-		int timeout=5; //wait up to 50ms
-		while (timeout > 0 && port.available() < 5) {
+		int timeout=3; //wait up to 50ms
+		while (timeout > 0 && port.available() < 3) {
 			sleep(10); //in ms
 			timeout--;
 		}
 
 		byte[] msg = port.readBytes();
 		if (timeout < 1) {
-			log.log(Level.INFO, "No serial data available, duration: {0}", System.currentTimeMillis()-start);
+			log.log(Level.INFO, "No serial data available, duration: {0}ms", System.currentTimeMillis()-start);
 			return false;
 		}
 
@@ -550,7 +553,7 @@ public class Rainbowduino {
 			}			
 		}
 		
-		log.log(Level.INFO, "Invalid serial data {0}, duration: {1}", 
+		log.log(Level.INFO, "Invalid serial data {0}, duration: {1}ms", 
 				new String[] {Arrays.toString(msg), ""+(System.currentTimeMillis()-start)});
 		return false;		
 	}
@@ -583,7 +586,7 @@ public class Rainbowduino {
 					int n;
 					try {
 						n = Integer.parseInt(""+msg[x]);
-						if (n==255 || n<0) {
+						if (n==255 || n<=0) {
 							break;
 						}
 						log.log(Level.INFO, "Reply from I2C device: #{0}", n);
