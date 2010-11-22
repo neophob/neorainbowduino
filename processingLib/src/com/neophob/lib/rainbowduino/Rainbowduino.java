@@ -526,19 +526,20 @@ public class Rainbowduino {
 	 */
 	private synchronized boolean waitForAck() {
 		//TODO some more tuning is needed here.
-		long start = System.currentTimeMillis();
+		//long start = System.currentTimeMillis();
 		int timeout=3; //wait up to 50ms
 		while (timeout > 0 && port.available() < 3) {
 			sleep(10); //in ms
 			timeout--;
 		}
 
-		byte[] msg = port.readBytes();
-		if (timeout < 1) {
-			log.log(Level.INFO, "No serial data available, duration: {0}ms", System.currentTimeMillis()-start);
+		if (timeout < 1 && port.available() < 3) {
+			//log.log(Level.INFO, "No serial data available, duration: {0}ms", System.currentTimeMillis()-start);
 			return false;
 		}
-
+		byte[] msg = port.readBytes();
+		//log.log(Level.INFO, "data length: {0}", msg.length);
+		
 		//INFO: MEEE [0, 0, 65, 67, 75, 0, 0]
 		for (int i=0; i<msg.length-2; i++) {
 			if (msg[i]== 'A' && msg[i+1]== 'C' && msg[i+2]== 'K') {
@@ -553,8 +554,8 @@ public class Rainbowduino {
 			}			
 		}
 		
-		log.log(Level.INFO, "Invalid serial data {0}, duration: {1}ms", 
-				new String[] {Arrays.toString(msg), ""+(System.currentTimeMillis()-start)});
+		//log.log(Level.INFO, "Invalid serial data {0}, duration: {1}ms", 
+		//		new String[] {Arrays.toString(msg), ""+(System.currentTimeMillis()-start)});
 		return false;		
 	}
 	
