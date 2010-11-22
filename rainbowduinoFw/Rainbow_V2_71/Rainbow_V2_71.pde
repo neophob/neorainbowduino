@@ -12,7 +12,7 @@
  * libraries to patch:
  * Wire: 
  *  	utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
- *                    #define TWI_BUFFER_LENGTH 98 (was 32)
+ *                     #define TWI_BUFFER_LENGTH 98 (was 32)
  *  	wire.h: #define BUFFER_LENGTH 98 (was 32)
  *
  *
@@ -57,9 +57,6 @@ byte g_bufCurr;
 
 //flag to blit image
 volatile byte g_swapNow;
-
-//hold the number of availble bytes in the i2c buffer
-volatile byte g_readI2c;
 byte g_circle;
 
 //data marker
@@ -80,7 +77,6 @@ void setup() {
   g_line = 0;
   g_bufCurr = 0;
   g_swapNow = 0; 
-  g_readI2c = 0;
   g_circle = 0;
 
   Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus as slave
@@ -98,36 +94,30 @@ void setup() {
 
 //the mainloop - try to fetch data from the i2c bus and copy it into our buffer
 void loop() {
-  if (g_readI2c>97) { 
+  if (Wire.available()>97) { 
     
     byte b = Wire.receive();
-    g_readI2c--;
     if (b != START_OF_DATA) {
-      //handle error, read remaining data until end of data marker
-      while (Wire.available()>0 && Wire.receive()!=END_OF_DATA) {}
-      g_readI2c=0;
+      //handle error, read remaining data until end of data marker (if available)
+      while (Wire.available()>0 && Wire.receive()!=END_OF_DATA) {}      
       return;
     }
 
     b=0;
-    //read image data
+    //read image data (payload) - an image size is exactly 96 bytes
     while (Wire.available()>0 && b<96) { 
       imageBuffer[b++]=Wire.receive();  //recieve whatever is available
-      g_readI2c--;
     }
 
     //read end of data marker
-    b=0;
-    if (Wire.available()>0) {
-      b = Wire.receive();  
-      g_readI2c--;
-    }
-
-    //if the receieved data looks good - copy it into backBuffer
-    if (b == END_OF_DATA) {
+    if (Wire.available()>0 && Wire.receive()==END_OF_DATA) {
       DispshowFrame();
     } 
+  } else {
+    //sleep for 250us
+    delayMicroseconds(250);
   }
+  
 }
 
 
@@ -138,7 +128,7 @@ void loop() {
 //HINT2: do not handle stuff here!! this will NOT work
 //collect only data here and process it in the main loop!
 void receiveEvent(int numBytes) {
-    g_readI2c+=numBytes;
+  //do nothing here - 
 }
 
 
@@ -155,9 +145,9 @@ void DispshowFrame(void) {
 //  }
 
   ofs=0;
-  for (color=0;color<3;color++) {
-    for (row=0;row<8;row++) {
-      for (dots=0;dots<4;dots++) {
+  for (color=0; color<3; color++) {
+    for (row=0; row<8; row++) {
+      for (dots=0; dots<4; dots++) {
         //format: 32b G, 32b R, 32b B
         buffer[!g_bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
       }
@@ -178,7 +168,7 @@ void DispshowFrame(void) {
 //           using a 10khz resolution means, we get 10000/128 = 78.125 frames/s
 // TODO: try to implement an interlaced update at the same rate. 
 void displayNextLine() { 
-  flash_next_line();  // scan the next line in LED matrix level by level. 
+  draw_next_line();  // scan the next line in LED matrix level by level. 
   g_line++;                                      // process all 8 lines of the led matrix 
   if(g_line>7) {                                 // when have scaned all LED's, back to line 0 and add the level 
     g_line=0; 
@@ -201,7 +191,7 @@ void displayNextLine() {
 
 
 // scan one line
-void flash_next_line() {
+void draw_next_line() {
   disable_oe;            // TODO: what does this do?
 
   //open the current line (variable g_line)
@@ -230,31 +220,25 @@ void shift_24_bit() {
       //get pixel from buffer
       data1=buffer[g_bufCurr][color][g_line][row]&0x0f;
       data0=buffer[g_bufCurr][color][g_line][row]>>4;
-// TODO clk_rising, guess 2 times should be enough!
+
       if(data0>g_level) { // is this pixel visible in current level (=brightness)
         shift_data_1;     // yes - light on
-        clk_rising;
       } 
       else {
-        shift_data_0;     // no
-        clk_rising;
+        shift_data_0;     // no        
       }
+      clk_rising;
 
       if(data1>g_level) {
         shift_data_1;      // TODO: what does this do?
-        clk_rising;        // TODO: what does this do?
       } 
       else {
         shift_data_0;
-        clk_rising;
-      }      
+      }
+      clk_rising;
     } 
   } 
 
   le_low; // TODO: what does this do?
 }
-
-
-
-
 
