@@ -125,7 +125,7 @@ int send_initial_image(byte i2caddr) {
 // Assumes Wire.begin() has already been called
 // HINT: maximal 14 devices can be scanned!
 void scanI2CBus() {
-  memset(serialResonse, 0, SERIALBUFFERSIZE);
+  memset(serialResonse, 255, SERIALBUFFERSIZE);
   serialResonse[0] = CMD_START_BYTE;
   serialResonse[1] = CMD_SCAN_I2C_BUS;
 
@@ -140,6 +140,7 @@ void scanI2CBus() {
       serialResonse[i]=addr;
       if (i<16) i++;
     }
+    delayMicroseconds(20);
   }
   Serial.write(serialResonse, SERIALBUFFERSIZE);
   memset(serialResonse, 0, SERIALBUFFERSIZE);
@@ -147,7 +148,7 @@ void scanI2CBus() {
 
 
 void setup() {
-  Wire.begin(); // join i2c bus (address optional for master)
+  Wire.begin(1); // join i2c bus (address optional for master)
   
   pinMode(13, OUTPUT);
   memset(serialResonse, 0, SERIALBUFFERSIZE);
@@ -165,8 +166,9 @@ void loop() {
   digitalWrite(13, LOW);
   // see if we got a proper command string yet
   if (readCommand(serInStr) == 0) {
-    //wait 50ms
-    delay(1); 
+    //no valid data found
+    //sleep for 250us
+    delayMicroseconds(250);
     return;
   }
 
