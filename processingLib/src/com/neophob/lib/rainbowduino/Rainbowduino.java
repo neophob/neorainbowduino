@@ -566,8 +566,8 @@ public class Rainbowduino {
 	private synchronized boolean waitForI2cResultAndAck() {
 		//wait for ack/nack
 		//TODO make this configurabe
-		int timeout=10; //wait up to 100ms
-		while (timeout > 0 && port.available() < 16) {
+		int timeout=20; //wait up to 100ms
+		while (timeout > 0 && port.available() < 15) {
 			sleep(10); //in ms
 			timeout--;
 		}
@@ -578,6 +578,7 @@ public class Rainbowduino {
 			return false;
 		}
 
+		log.log(Level.INFO, "get serialdata {1} bytes: {0}", new Object[] { Arrays.toString(msg), msg.length });
 		
 		for (int i=0; i<msg.length-2; i++) {
 			if (msg[i]==START_OF_CMD && msg[i+1]==CMD_SCAN_I2C_BUS) {
@@ -586,7 +587,7 @@ public class Rainbowduino {
 					int n;
 					try {
 						n = Integer.parseInt(""+msg[x]);
-						if (n==255 || n<=0) {
+						if (n==255 || n<1) {							
 							break;
 						}
 						log.log(Level.INFO, "Reply from I2C device: #{0}", n);
@@ -594,21 +595,10 @@ public class Rainbowduino {
 					} catch (Exception e) {}
 				}
 			}
-
-			if (msg[i]== 'A' && msg[i+1]== 'C' && msg[i+2]== 'K') {
-				try {
-					this.arduinoBufferSize = msg[i+3];
-					this.arduinoErrorCounter = msg[i+4];					
-				} catch (Exception e) {
-					// we failed to update statistics...
-				}
-				this.arduinoHeartbeat = System.currentTimeMillis();
-				return true;
-			}			
 		}
 		
-		log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
-		return false;		
+		//log.log(Level.INFO, "Invalid serial data {0}", Arrays.toString(msg));
+		return true;		
 	}
 
 
@@ -632,6 +622,23 @@ public class Rainbowduino {
 	 * @param _app
 	 * @return List of found i2c devices
 	 */
+	public static List<Integer> scanI2cBus(PApplet _app, String s) {
+		Rainbowduino r=null;		
+		try {
+			r = new Rainbowduino(_app, new ArrayList<Integer>(), s);
+			r.i2cBusScan();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+				
+		return r.scannedI2cDevices;
+	}
+
+	/**
+	 * 
+	 * @param _app
+	 * @return
+	 */
 	public static List<Integer> scanI2cBus(PApplet _app) {
 		Rainbowduino r=null;
 		
@@ -644,4 +651,5 @@ public class Rainbowduino {
 		r.i2cBusScan();
 		return r.scannedI2cDevices;
 	}
+
 }
