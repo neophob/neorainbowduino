@@ -550,7 +550,10 @@ public class Rainbowduino {
 					// we failed to update statistics...
 				}
 				this.arduinoHeartbeat = System.currentTimeMillis();
-				return true;
+				if (this.arduinoErrorCounter==0) {
+					return true;					
+				}
+				return false;
 			}			
 		}
 		
