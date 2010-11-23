@@ -1,6 +1,7 @@
 package com.neophob.lib.rainbowduino.test;
 
 import java.util.Arrays;
+import java.util.List;
 
 import processing.core.PApplet;
 
@@ -23,7 +24,8 @@ public class TestI2cScanner extends PApplet {
 	 */
 	public void setup() {
 		System.out.println("Scan I2C bus: ");
-		System.out.println("Found I2C devices: "+Arrays.toString(Rainbowduino.scanI2cBus(this).toArray()) );
+		List<Integer> list = Rainbowduino.scanI2cBus(this,"/dev/tty.usbserial-A9007QOH");
+		System.out.println("Found I2C devices: "+Arrays.toString(list.toArray()) );
 		
 		noLoop();
 	}
