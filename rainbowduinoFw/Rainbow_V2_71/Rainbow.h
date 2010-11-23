@@ -2,7 +2,7 @@
 #define Rainbow_h
 
 //Address of the device. Note: this must be changed and compiled for all unique Rainbowduinos
-#define I2C_DEVICE_ADDRESS 0x06
+#define I2C_DEVICE_ADDRESS 0x05
 
 //=============================================
 #define SH_BIT_OE    0x08
@@ -25,13 +25,14 @@
 //Checking if a bit is set: if (byte & (1 << bit))
 //Checking if a bit is cleared: if (~byte & (1 << bit)) OR if (!(byte & (1 << bit)))
 
-#define clk_rising  {SH_PORT_CLK&=~SH_BIT_CLK;SH_PORT_CLK|=SH_BIT_CLK;}
-#define le_high     {SH_PORT_LE|=SH_BIT_LE;}
-#define le_low      {SH_PORT_LE&=~SH_BIT_LE;}
-#define enable_oe   {SH_PORT_OE&=~SH_BIT_OE;}
-#define disable_oe  {SH_PORT_OE|=SH_BIT_OE;}
+#define CLK_RISING  {SH_PORT_CLK&=~SH_BIT_CLK;SH_PORT_CLK|=SH_BIT_CLK;}
+#define LE_HIGH     {SH_PORT_LE|=SH_BIT_LE;}
+#define LE_LOW      {SH_PORT_LE&=~SH_BIT_LE;}
+#define ENABLE_OE   {SH_PORT_OE&=~SH_BIT_OE;}
+#define DISABLE_OE  {SH_PORT_OE|=SH_BIT_OE;}
 
-#define shift_data_1     {SH_PORT_SDI|=SH_BIT_SDI;}
-#define shift_data_0     {SH_PORT_SDI&=~SH_BIT_SDI;}
+#define SHIFT_DATA_1     {SH_PORT_SDI|=SH_BIT_SDI;}
+#define SHIFT_DATA_0     {SH_PORT_SDI&=~SH_BIT_SDI;}
 
 #endif
+

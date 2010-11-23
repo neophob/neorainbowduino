@@ -105,19 +105,15 @@ void loop() {
 
     b=0;
     //read image data (payload) - an image size is exactly 96 bytes
-    while (Wire.available()>0 && b<96) { 
+    while (b<96) { 
       imageBuffer[b++]=Wire.receive();  //recieve whatever is available
     }
 
     //read end of data marker
-    if (Wire.available()>0 && Wire.receive()==END_OF_DATA) {
+    if (Wire.receive()==END_OF_DATA) {
       DispshowFrame();
     } 
-  } else {
-    //sleep for 250us
-    delayMicroseconds(250);
   }
-  
 }
 
 
@@ -128,7 +124,7 @@ void loop() {
 //HINT2: do not handle stuff here!! this will NOT work
 //collect only data here and process it in the main loop!
 void receiveEvent(int numBytes) {
-  //do nothing here - 
+  //do nothing here
 }
 
 
@@ -192,7 +188,7 @@ void displayNextLine() {
 
 // scan one line
 void draw_next_line() {
-  disable_oe;            // TODO: what does this do?
+  DISABLE_OE;            // TODO: what does this do?
 
   //open the current line (variable g_line)
   if(g_line < 3) {    // Open the line and close others
@@ -206,7 +202,7 @@ void draw_next_line() {
 
   shift_24_bit();        // feed the leds
 
-  enable_oe;
+  ENABLE_OE;
 }
 
 
@@ -214,7 +210,7 @@ void draw_next_line() {
 void shift_24_bit() { 
   byte color,row,data0,data1; 
   
-  le_high;                           // TODO: what does this do?
+  LE_HIGH;                           // TODO: what does this do?
   for (color=0;color<3;color++) {    // Color format GRB 
     for (row=0;row<4;row++) { 
       //get pixel from buffer
@@ -222,23 +218,23 @@ void shift_24_bit() {
       data0=buffer[g_bufCurr][color][g_line][row]>>4;
 
       if(data0>g_level) { // is this pixel visible in current level (=brightness)
-        shift_data_1;     // yes - light on
+        SHIFT_DATA_1;     // yes - light on
       } 
       else {
-        shift_data_0;     // no        
+        SHIFT_DATA_0;     // no        
       }
-      clk_rising;
+      CLK_RISING
 
       if(data1>g_level) {
-        shift_data_1;      // TODO: what does this do?
+        SHIFT_DATA_1;      // TODO: what does this do?
       } 
       else {
-        shift_data_0;
+        SHIFT_DATA_0;
       }
-      clk_rising;
+      CLK_RISING;
     } 
   } 
 
-  le_low; // TODO: what does this do?
+  LE_LOW; // TODO: what does this do?
 }
 
