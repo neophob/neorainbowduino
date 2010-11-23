@@ -28,6 +28,7 @@ public class TestI2cScanner extends PApplet {
 		System.out.println("Found I2C devices: "+Arrays.toString(list.toArray()) );
 		
 		noLoop();
+		System.exit(0);
 	}
 	
 	public void draw() {  

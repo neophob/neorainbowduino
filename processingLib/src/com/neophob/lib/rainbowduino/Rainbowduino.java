@@ -582,7 +582,7 @@ public class Rainbowduino {
 			return false;
 		}
 
-		log.log(Level.INFO, "get serialdata {1} bytes: {0}", new Object[] { Arrays.toString(msg), msg.length });
+		//log.log(Level.INFO, "get serialdata {1} bytes: {0}", new Object[] { Arrays.toString(msg), msg.length });
 		
 		for (int i=0; i<msg.length-2; i++) {
 			if (msg[i]==START_OF_CMD && msg[i+1]==CMD_SCAN_I2C_BUS) {
@@ -590,7 +590,6 @@ public class Rainbowduino {
 				for (int x=i+2; x<msg.length; x++) {                                                              
 					int n;
 					try {
-						log.log(Level.INFO, "msg[x]: {0}", msg[x]);
 						n = Integer.parseInt(""+msg[x]);
 						if (n==255 || n<1) {							
 							break;
