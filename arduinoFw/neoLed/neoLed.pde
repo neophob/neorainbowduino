@@ -50,6 +50,7 @@ extern "C" {
 #define CMD_INIT_RAINBOWDUINO 0x05
 #define CMD_SCAN_I2C_BUS 0x06
 
+//8ms is the minimum!
 #define SERIAL_WAIT_TIME_IN_MS 8
 
 //I2C definitions
@@ -84,11 +85,11 @@ byte g_errorCounter;
 //send status back to library
 static void sendAck() {
   serialResonse[0] = 'A';
-  serialResonse[1] = 'C';
-  serialResonse[2] = 'K';
-  serialResonse[3] = Serial.available();
-  serialResonse[4] = g_errorCounter;  
-  Serial.write(serialResonse, SERIALBUFFERSIZE);
+  serialResonse[1] = 'K';
+  serialResonse[2] = Serial.available();
+  serialResonse[3] = g_errorCounter;  
+  Serial.write(serialResonse, 4);
+
   //Clear bufer
  // Serial.flush();
 }
@@ -138,9 +139,9 @@ void scanI2CBus() {
     digitalWrite(13, LOW);
     if (rc==0) {
       serialResonse[i]=addr;
-      if (i<16) i++;
+      if (i<SERIALBUFFERSIZE) i++;
     }
-    delayMicroseconds(20);
+    delayMicroseconds(64);
   }
   Serial.write(serialResonse, SERIALBUFFERSIZE);
   memset(serialResonse, 0, SERIALBUFFERSIZE);
@@ -171,7 +172,7 @@ void loop() {
     delayMicroseconds(250);
     return;
   }
-
+  
   digitalWrite(13, HIGH);
   
   //i2c addres of device
@@ -269,16 +270,15 @@ byte readCommand(byte *str) {
     str[i] = Serial.read();       // fill it up
   }
   
-// --- START HEADER CHECK  
-  //check sendlen, TODO: its possible that sendlen is 0!
-  sendlen = str[2];
-  
+// --- START HEADER CHECK    
   //check if data is correct, 0x10 = START_OF_DATA
-  b = str[4];
-  if (b != START_OF_DATA) {
+  if (str[4] != START_OF_DATA) {
     g_errorCounter=104;
     return 0;
   }
+  
+  //check sendlen, its possible that sendlen is 0!
+  sendlen = str[2];
 // --- END HEADER CHECK
 
   
@@ -298,8 +298,7 @@ byte readCommand(byte *str) {
   }
 
   //check if data is correct, 0x20 = END_OF_DATA
-  b = str[HEADER_SIZE+sendlen];
-  if (b != END_OF_DATA) {
+  if (str[HEADER_SIZE+sendlen] != END_OF_DATA) {
     g_errorCounter=106;
     return 0;
   }
