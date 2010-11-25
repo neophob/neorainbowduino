@@ -11,6 +11,7 @@ import java.awt.image.ReplicateScaleFilter;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -179,6 +180,56 @@ public class RainbowduinoHelper {
 		return converted;
 	}
 
+
+	/**
+	 * 
+	 * @param data
+	 * @return
+	 */
+	public static byte[] rleCompress8bit(byte[] data) {
+		final byte marker = '_';
+		byte ret[] = new byte[512];
+		
+		boolean firstRun = true;
+		byte lastByte=0;
+		byte counter=0;
+		int dst=0;
+		
+		for (int i=0; i<data.length;) {			
+			if (firstRun) {
+				firstRun = false;
+				lastByte = data[i];
+				i++;
+			} else {
+				if (lastByte == data[i]) {
+					//compress it
+					counter = 1;
+					while (data[i]==lastByte && i+1<data.length) {
+						counter++;
+						i++;
+						//System.out.println("i:"+i+", length: "+data.length+", dst: "+dst);
+					}
+					ret[dst++] = marker;
+					ret[dst++] = counter;
+					ret[dst++] = lastByte;
+				} else {
+					//no need
+					lastByte = data[i];
+					//check if its marker:
+					if (data[i]==marker) {
+						ret[dst++] = data[i];
+						ret[dst++] = 1;
+						ret[dst++] = data[i];
+					} else {
+						ret[dst++] = data[i];						
+					}
+					i++;
+				}
+			}
+		}
+		
+		return Arrays.copyOfRange(ret, 0, dst);
+	}
 
 	/**
 	 * resize an pixel array using 
