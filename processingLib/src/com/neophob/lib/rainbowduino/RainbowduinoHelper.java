@@ -189,45 +189,36 @@ public class RainbowduinoHelper {
 	public static byte[] rleCompress8bit(byte[] data) {
 		final byte marker = '_';
 		byte ret[] = new byte[512];
-		
+
 		boolean firstRun = true;
-		byte lastByte=0;
 		byte counter=0;
 		int dst=0;
-		
-		for (int i=0; i<data.length;) {			
-			if (firstRun) {
-				firstRun = false;
-				lastByte = data[i];
-				i++;
-			} else {
-				if (lastByte == data[i]) {
-					//compress it
-					counter = 1;
-					while (data[i]==lastByte && i+1<data.length) {
-						counter++;
-						i++;
-						//System.out.println("i:"+i+", length: "+data.length+", dst: "+dst);
-					}
-					ret[dst++] = marker;
-					ret[dst++] = counter;
-					ret[dst++] = lastByte;
-				} else {
-					//no need
-					lastByte = data[i];
-					//check if its marker:
-					if (data[i]==marker) {
-						ret[dst++] = data[i];
-						ret[dst++] = 1;
-						ret[dst++] = data[i];
-					} else {
-						ret[dst++] = data[i];						
-					}
+
+		for (int i=0; i<data.length-1; i++) {				
+			if (data[i] == data[i+1]) {
+				//compress it
+				counter = 1;
+				while (data[i+1]==data[i] && i<data.length-2) {
+					counter++;
 					i++;
+					//System.out.println("i:"+i+", length: "+data.length+", dst: "+dst);
+				}
+				ret[dst++] = marker;
+				ret[dst++] = counter;
+				ret[dst++] = data[i-1];
+			} else {
+				//check if its marker:
+				if (data[i]==marker) {
+					ret[dst++] = marker;
+					ret[dst++] = 1;
+					ret[dst++] = data[i];
+				} else {
+					ret[dst++] = data[i];						
 				}
 			}
+
 		}
-		
+		ret[dst++] = data[data.length-1];
 		return Arrays.copyOfRange(ret, 0, dst);
 	}
 
@@ -260,15 +251,15 @@ public class RainbowduinoHelper {
 		//grab the pixels out of our Image
 		int[] pixels = new int[newXSize*newYSize];
 
-        PixelGrabber pg = new PixelGrabber(scaledImage, 0, 0, newXSize, newYSize, pixels, 0, newXSize);
-        try {
-            pg.grabPixels();
-        } catch (InterruptedException e) {
-            log.log(Level.WARNING, "interrupted waiting for pixels!");
-        }
-        if ((pg.getStatus() & ImageObserver.ABORT) != 0) {
-            log.log(Level.WARNING, "image fetch aborted or errored");
-        }
+		PixelGrabber pg = new PixelGrabber(scaledImage, 0, 0, newXSize, newYSize, pixels, 0, newXSize);
+		try {
+			pg.grabPixels();
+		} catch (InterruptedException e) {
+			log.log(Level.WARNING, "interrupted waiting for pixels!");
+		}
+		if ((pg.getStatus() & ImageObserver.ABORT) != 0) {
+			log.log(Level.WARNING, "image fetch aborted or errored");
+		}
 
 		return pixels;
 	}
