@@ -84,6 +84,7 @@ public class Rainbowduino {
 	private boolean serialPortReady=false;
 	
 	private long arduinoHeartbeat;
+	private long ackErrors = 0;
 	private int arduinoBufferSize;
 	
 	//logical errors reported by arduino, TODO: rename to lastErrorCode
@@ -239,7 +240,8 @@ public class Rainbowduino {
 		
 		try {
 			port = new Serial(app, portName, this.baud);
-			sleep(1500); //give it time to initialize		
+			sleep(1500); //give it time to initialize
+			//ping();ping();ping();ping();ping();ping();ping();ping();ping();ping();ping();ping();
 			if (ping()) {
 
 				//send initial image to rainbowduinos
@@ -500,6 +502,15 @@ public class Rainbowduino {
 		return arduinoHeartbeat;
 	}
 	
+	
+	/**
+	 * how may times the serial response was missing / invalid
+	 * @return
+	 */
+	public synchronized long getAckErrors() {
+		return ackErrors;
+	}
+
 	/**
 	 * send the data to the serial port
 	 * @param cmdfull
@@ -509,7 +520,7 @@ public class Rainbowduino {
 		if (port==null) {
 			throw new SerialPortException("port is not ready!");
 		}
-		
+				
 		try {
 			port.output.write(cmdfull);
 			//DO NOT flush the buffer
@@ -526,7 +537,7 @@ public class Rainbowduino {
 	 */
 	private synchronized boolean waitForAck() {
 		//TODO some more tuning is needed here.
-		//long start = System.currentTimeMillis();
+		long start = System.currentTimeMillis();
 		int timeout=3; //wait up to 50ms
 		while (timeout > 0 && port.available() < 3) {
 			sleep(10); //in ms
@@ -534,18 +545,19 @@ public class Rainbowduino {
 		}
 
 		if (timeout < 1 && port.available() < 3) {
-			//log.log(Level.INFO, "No serial data available, duration: {0}ms", System.currentTimeMillis()-start);
+			log.log(Level.INFO, "No serial data available, duration: {0}ms", System.currentTimeMillis()-start);
+			ackErrors++;
 			return false;
 		}
 		byte[] msg = port.readBytes();
 		//log.log(Level.INFO, "data length: {0}", msg.length);
 		
 		//INFO: MEEE [0, 0, 65, 67, 75, 0, 0]
-		for (int i=0; i<msg.length-2; i++) {
-			if (msg[i]== 'A' && msg[i+1]== 'C' && msg[i+2]== 'K') {
+		for (int i=0; i<msg.length-1; i++) {
+			if (msg[i]== 'A' && msg[i+1]== 'K') {
 				try {
-					this.arduinoBufferSize = msg[i+3];
-					this.arduinoErrorCounter = msg[i+4];					
+					this.arduinoBufferSize = msg[i+2];
+					this.arduinoErrorCounter = msg[i+3];					
 				} catch (Exception e) {
 					// we failed to update statistics...
 				}
@@ -553,12 +565,14 @@ public class Rainbowduino {
 				if (this.arduinoErrorCounter==0) {
 					return true;					
 				}
+				ackErrors++;
 				return false;
 			}			
 		}
 		
-		//log.log(Level.INFO, "Invalid serial data {0}, duration: {1}ms", 
-		//		new String[] {Arrays.toString(msg), ""+(System.currentTimeMillis()-start)});
+		log.log(Level.INFO, "Invalid serial data {0}, duration: {1}ms", 
+				new String[] {Arrays.toString(msg), ""+(System.currentTimeMillis()-start)});
+		ackErrors++;
 		return false;		
 	}
 	
