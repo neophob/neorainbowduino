@@ -143,7 +143,7 @@ void DispshowFrame(void) {
   ofs=0;
   for (color=0; color<3; color++) {
     for (row=0; row<8; row++) {
-      for (dots=0; dots<4; dots++) {
+      for (dots=0;dots<4;dots++) {
         //format: 32b G, 32b R, 32b B
         buffer[!g_bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
       }
