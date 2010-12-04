@@ -241,7 +241,6 @@ public class Rainbowduino {
 		try {
 			port = new Serial(app, portName, this.baud);
 			sleep(1500); //give it time to initialize
-			//ping();ping();ping();ping();ping();ping();ping();ping();ping();ping();ping();ping();
 			if (ping()) {
 
 				//send initial image to rainbowduinos
@@ -545,7 +544,7 @@ public class Rainbowduino {
 		}
 
 		if (timeout < 1 && port.available() < 3) {
-			log.log(Level.INFO, "No serial data available, duration: {0}ms", System.currentTimeMillis()-start);
+			log.log(Level.INFO, "No serial reply, duration: {0}ms", System.currentTimeMillis()-start);
 			ackErrors++;
 			return false;
 		}
@@ -570,8 +569,12 @@ public class Rainbowduino {
 			}			
 		}
 		
+		String s="";
+		for (byte b: msg) {
+			s+=(char)b;
+		}
 		log.log(Level.INFO, "Invalid serial data {0}, duration: {1}ms", 
-				new String[] {Arrays.toString(msg), ""+(System.currentTimeMillis()-start)});
+				new String[] {s, ""+(System.currentTimeMillis()-start)});
 		ackErrors++;
 		return false;		
 	}
