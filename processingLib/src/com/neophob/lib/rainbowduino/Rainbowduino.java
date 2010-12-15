@@ -471,8 +471,8 @@ public class Rainbowduino {
 		data.loadPixels();
 		topLeftImg.copy    (data, 0, 			0, 			  data.width/2, data.height/2, 0, 0, data.width/2, data.height/2); 
 		topRightImg.copy   (data, data.width/2, 0, 			  data.width/2, data.height/2, 0, 0, data.width/2, data.height/2);		
-		bottomLeftImg.copy (data, 0, 			data.width/2, data.width/2, data.height/2, 0, 0, data.width/2, data.height/2); 
-		bottomRightImg.copy(data, data.width/2, data.width/2, data.width/2, data.height/2, 0, 0, data.width/2, data.height/2);		
+		bottomLeftImg.copy (data, 0, 			data.height/2, data.width/2, data.height/2, 0, 0, data.width/2, data.height/2); 
+		bottomRightImg.copy(data, data.width/2, data.height/2, data.width/2, data.height/2, 0, 0, data.width/2, data.height/2);		
 		data.updatePixels();
 		
 		topLeftImg.loadPixels();
