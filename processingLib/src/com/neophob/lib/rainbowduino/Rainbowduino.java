@@ -65,7 +65,7 @@ public class Rainbowduino {
 	/** 
 	 * internal lib version
 	 */
-	public static final String VERSION = "1.4";
+	public static final String VERSION = "1.6";
 
 	private static final byte START_OF_CMD = 0x01;
 	private static final byte CMD_SENDFRAME = 0x03;
@@ -223,7 +223,6 @@ public class Rainbowduino {
 		return (port != null);
 	}	
 
-
 	
 
 	/**
@@ -332,6 +331,7 @@ public class Rainbowduino {
 	 * 
 	 * @param addr the i2c address of the device
 	 * @param data rgb data (int[64], each int contains one RGB pixel)
+	 * @return true if send was successful
 	 */
 	public boolean sendRgbFrame(byte addr, int[] data) {
 		return sendFrame(addr, RainbowduinoHelper.convertRgbToRainbowduino(data));
@@ -343,7 +343,7 @@ public class Rainbowduino {
 	 * 
 	 * @param addr
 	 * @param data
-	 * @return
+	 * @return true if send was successful
 	 */
 	public boolean sendRgbFrame(byte addr, PApplet data) {
 		data.loadPixels();
@@ -537,7 +537,7 @@ public class Rainbowduino {
 	 * 
 	 * @param addr the i2c address of the device
 	 * @param data byte[3*8*4]
-	 * @param check wheter to perform sensity check
+	 * @return true if send was successful
 	 */
 	public boolean sendFrame(byte addr, byte data[]) {
 		//TODO stop if connection counter > n
@@ -580,6 +580,7 @@ public class Rainbowduino {
 	 * the rainbowduino. check arduinoErrorCounter for any errors.
 	 * 
 	 * @param addr the i2c slave address of the rainbowduino
+	 * @return true if send was successful
 	 */
 	public boolean initRainbowduino(byte addr) {
 		//TODO stop if connection counter > n
