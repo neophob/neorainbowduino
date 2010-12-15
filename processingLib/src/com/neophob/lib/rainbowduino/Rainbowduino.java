@@ -338,6 +338,8 @@ public class Rainbowduino {
 	}
 
 	/**
+	 * Send the image data of an PApplet to a Rainbowduino Device. The image gets 
+	 * resized and converted to a Rainbowduino compatible format
 	 * 
 	 * @param addr
 	 * @param data
@@ -354,10 +356,11 @@ public class Rainbowduino {
 	}
 
 	/**
+	 * Send a PImage to a Rainbowduino Device. The image gets resized and converted to a Rainbowduino compatible format.
 	 * 
 	 * @param addr
 	 * @param data
-	 * @return
+	 * @return true if send was successful
 	 */
 	public boolean sendRgbFrame(byte addr, PImage data) {
 		data.loadPixels();
@@ -368,12 +371,68 @@ public class Rainbowduino {
 			RainbowduinoHelper.resizeImage(img, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, data.width, data.height);
 		return sendFrame(addr, RainbowduinoHelper.convertRgbToRainbowduino(resizedImage));
 	}
+	
 
+	/**
+	 * Send a PApplet to two Rainbowduino Device. The image gets resized and converted to a Rainbowduino compatible format.
+	 * 
+ 	 * @param addrLeft the left rainbowduino
+ 	 * @param addrRight the right rainbowduino
+	 * @param data
+	 * @return true if send was successful
+	 */
+	public boolean sendRgbFrame(byte addrLeft, byte addrRight, PApplet data) {
+		PImage img = new PImage(data.width, data.height, PApplet.RGB);
+		data.loadPixels();
+		img.loadPixels();
+		img.pixels=data.pixels;
+		data.updatePixels();
+		img.updatePixels();
+		
+		return sendRgbFrame(addrLeft, addrRight, img);
+	}
+	
+
+	/**
+	 * Send a PImage to two Rainbowduino Device. The image gets resized and converted to a Rainbowduino compatible format.
+	 * 
+ 	 * @param addrLeft the left rainbowduino
+ 	 * @param addrRight the right rainbowduino
+	 * @param data
+	 * @return true if send was successful
+	 */
+	public boolean sendRgbFrame(byte addrLeft, byte addrRight, PImage data) {
+		PImage leftImg = new PImage(data.width/2, data.height, PApplet.RGB);
+		PImage rightImg = new PImage(data.width/2, data.height, PApplet.RGB);
+		
+		data.loadPixels();
+		//   copy(x, y, width, height, dx, dy, dwidth, dheight)
+		leftImg.copy(data, 0, 0, data.width/2, data.height, 0, 0, data.width/2, data.height); 
+		rightImg.copy(data, data.width/2, 0, data.width/2, data.height, 0, 0, data.width/2, data.height);		
+		data.updatePixels();
+		
+		leftImg.loadPixels();
+		int[] resizedImageLeft = 
+			RainbowduinoHelper.resizeImage(leftImg.pixels, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, leftImg.width, leftImg.height);
+		leftImg.updatePixels();
+		
+		rightImg.loadPixels();
+		int[] resizedImageRight = 
+			RainbowduinoHelper.resizeImage(rightImg.pixels, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, rightImg.width, rightImg.height);
+		rightImg.updatePixels();
+		
+		boolean bl = sendFrame(addrLeft, RainbowduinoHelper.convertRgbToRainbowduino(resizedImageLeft));
+		boolean br = sendFrame(addrRight, RainbowduinoHelper.convertRgbToRainbowduino(resizedImageRight));
+		
+		return bl && br;
+	}
+	
+	
 	/**
 	 * get md5 hash out of an image. used to check if the image changed
 	 * @param addr
 	 * @param data
-	 * @return
+	 * @return true if send was successful
 	 */
 	private boolean didFrameChange(byte addr, byte data[]) {
 		String s = RainbowduinoHelper.getMD5(data);
