@@ -108,6 +108,13 @@ public class RainbowduinoHelper {
 	 */
 
 	/**
+	 * 
+	 */
+	private RainbowduinoHelper() {
+		//no instance allowed
+	}
+	
+	/**
 	 * get md5 checksum of an byte array
 	 * @param input
 	 * @return
@@ -190,7 +197,6 @@ public class RainbowduinoHelper {
 		final byte marker = '_';
 		byte ret[] = new byte[512];
 
-		boolean firstRun = true;
 		byte counter=0;
 		int dst=0;
 

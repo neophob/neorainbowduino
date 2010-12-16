@@ -48,19 +48,19 @@ import processing.serial.Serial;
  */
 public class Rainbowduino {
 
-	static Logger log = Logger.getLogger(Rainbowduino.class.getName());
+	private static Logger log = Logger.getLogger(Rainbowduino.class.getName());
 
 	/**
 	 * number of leds horizontal<br>
 	 * TODO: should be dynamic, someday
 	 */
-	public static int NR_OF_LED_HORIZONTAL = 8;
+	public static final int NR_OF_LED_HORIZONTAL = 8;
 
 	/**
 	 * number of leds vertical<br>
 	 * TODO: should be dynamic, someday
 	 */
-	public static int NR_OF_LED_VERTICAL = NR_OF_LED_HORIZONTAL;
+	public static final int NR_OF_LED_VERTICAL = NR_OF_LED_HORIZONTAL;
 
 	/** 
 	 * internal lib version
@@ -81,8 +81,6 @@ public class Rainbowduino {
 	private int baud = 115200;
 	private Serial port;
 	
-	private boolean serialPortReady=false;
-	
 	private long arduinoHeartbeat;
 	private long ackErrors = 0;
 	private int arduinoBufferSize;
@@ -90,7 +88,7 @@ public class Rainbowduino {
 	//logical errors reported by arduino, TODO: rename to lastErrorCode
 	private int arduinoErrorCounter;
 	
-	//connection errors to arduino
+	//connection errors to arduino, TODO: use it!
 	private int connectionErrorCounter;
 	
 	/**
@@ -171,7 +169,6 @@ public class Rainbowduino {
 			log.log(Level.INFO,	"open port: {0}", portName);
 			serialPortName = portName;
 			openPort(portName, rainbowduinoAddr);
-			serialPortReady = true;
 		} else {
 			//try to find the port
 			String[] ports = Serial.list();
@@ -190,7 +187,6 @@ public class Rainbowduino {
 		if (port==null) {
 			throw new NoSerialPortFoundException("Error: no serial port found!");
 		}
-		serialPortReady = true;
 		log.log(Level.INFO,	"found serial port: "+serialPortName);
 	}
 
@@ -199,8 +195,9 @@ public class Rainbowduino {
 	 * clean up library
 	 */
 	public void dispose() {
-		if (connected()) port.stop();
-		serialPortReady = false;
+		if (connected()) {
+			port.stop();
+		}
 	}
 
 
@@ -388,7 +385,6 @@ public class Rainbowduino {
 		img.pixels=data.pixels;
 		data.updatePixels();
 		img.updatePixels();
-		
 		return sendRgbFrame(addrLeft, addrRight, img);
 	}
 	
@@ -775,24 +771,24 @@ public class Rainbowduino {
 
 	/**
 	 * Scan I2C bus
-	 * 
 	 * @param _app
+	 * @param port: the serial port to use
 	 * @return List of found i2c devices
 	 */
-	public static List<Integer> scanI2cBus(PApplet _app, String s) {
+	public static List<Integer> scanI2cBus(PApplet _app, String port) {
 		Rainbowduino r=null;		
 		try {
-			r = new Rainbowduino(_app, new ArrayList<Integer>(), s);
+			r = new Rainbowduino(_app, new ArrayList<Integer>(), port);
 			r.i2cBusScan();
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.WARNING, "I2C scanner failed: {0}", e);
 		}
 				
 		return r.scannedI2cDevices;
 	}
 
 	/**
-	 * 
+	 * Scan I2C bus, using port autodetection
 	 * @param _app
 	 * @return
 	 */
@@ -802,7 +798,7 @@ public class Rainbowduino {
 		try {
 			r = new Rainbowduino(_app, new ArrayList<Integer>());
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.WARNING, "I2C scanner failed: {0}", e);
 		}
 		
 		r.i2cBusScan();
