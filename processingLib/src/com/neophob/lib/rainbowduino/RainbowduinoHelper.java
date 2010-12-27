@@ -189,46 +189,6 @@ public class RainbowduinoHelper {
 
 
 	/**
-	 * 
-	 * @param data
-	 * @return
-	 */
-	public static byte[] rleCompress8bit(byte[] data) {
-		final byte marker = '_';
-		byte ret[] = new byte[512];
-
-		byte counter=0;
-		int dst=0;
-
-		for (int i=0; i<data.length-1; i++) {				
-			if (data[i] == data[i+1]) {
-				//compress it
-				counter = 1;
-				while (data[i+1]==data[i] && i<data.length-2) {
-					counter++;
-					i++;
-					//System.out.println("i:"+i+", length: "+data.length+", dst: "+dst);
-				}
-				ret[dst++] = marker;
-				ret[dst++] = counter;
-				ret[dst++] = data[i-1];
-			} else {
-				//check if its marker:
-				if (data[i]==marker) {
-					ret[dst++] = marker;
-					ret[dst++] = 1;
-					ret[dst++] = data[i];
-				} else {
-					ret[dst++] = data[i];						
-				}
-			}
-
-		}
-		ret[dst++] = data[data.length-1];
-		return Arrays.copyOfRange(ret, 0, dst);
-	}
-
-	/**
 	 * resize an pixel array using 
 	 * @param buffer
 	 * @param newXSize
@@ -238,26 +198,32 @@ public class RainbowduinoHelper {
 	 * @return
 	 */
 	public static int[] resizeImage(int[] buffer, int newXSize, int newYSize, int oldXSize, int oldYSize) {
-		//create buffered image out of our pixel buffer
-		BufferedImage bi = new BufferedImage(oldXSize, oldYSize, BufferedImage.TYPE_INT_RGB);
-		bi.setRGB(0, 0, oldXSize, oldYSize, buffer, 0, oldXSize);
-
-		//resize the image
-		Image scaledImage;
-		if (newXSize>=oldXSize) {
-			//enlarge image with an replicate scale filter
-			scaledImage = Toolkit.getDefaultToolkit().createImage (new FilteredImageSource (bi.getSource(),
-					new ReplicateScaleFilter(newXSize, newYSize)));		
+		return multiStepBilinearResize(buffer, oldXSize, oldYSize, newXSize, newYSize);
+	}
+	
+	/**
+	 * 
+	 */
+	private static int[] multiStepBilinearResize(int[] buffer, int deviceXSize, int deviceYSize, int currentXSize, int currentYSize) {
+		BufferedImage bi = new BufferedImage(currentXSize, currentYSize, BufferedImage.TYPE_INT_RGB);
+		bi.setRGB(0, 0, currentXSize, currentYSize, buffer, 0, currentXSize);		
+		
+		if (deviceXSize > currentXSize) {
+			//upscale - used for debug view
+			bi = Scalr.resize(bi, Scalr.Method.SPEED, deviceXSize, deviceYSize);
 		} else {
-			//shrink image with an area average filter
-			scaledImage = Toolkit.getDefaultToolkit().createImage (new FilteredImageSource (bi.getSource(),
-					new AreaAveragingScaleFilter(newXSize, newYSize)));		
-		}
-
-		//grab the pixels out of our Image
-		int[] pixels = new int[newXSize*newYSize];
-
-		PixelGrabber pg = new PixelGrabber(scaledImage, 0, 0, newXSize, newYSize, pixels, 0, newXSize);
+			//downscale - used to send to device
+			bi = Scalr.resize(bi, Scalr.Method.QUALITY, deviceXSize, deviceYSize);	
+		}		              
+        return getPixelsFromImage(bi, deviceXSize, deviceYSize);
+    }
+	
+	/**
+	 * 
+	 */
+	private static int[] getPixelsFromImage(Image scaledImage, int deviceXSize, int deviceYSize) {
+		int[] pixels = new int[deviceXSize*deviceYSize];
+		PixelGrabber pg = new PixelGrabber(scaledImage, 0, 0, deviceXSize, deviceYSize, pixels, 0, deviceXSize);
 		try {
 			pg.grabPixels();
 		} catch (InterruptedException e) {
@@ -266,8 +232,6 @@ public class RainbowduinoHelper {
 		if ((pg.getStatus() & ImageObserver.ABORT) != 0) {
 			log.log(Level.WARNING, "image fetch aborted or errored");
 		}
-
 		return pixels;
 	}
-
 }
