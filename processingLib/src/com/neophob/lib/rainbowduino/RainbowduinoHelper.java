@@ -221,17 +221,15 @@ public class RainbowduinoHelper {
 	/**
 	 * 
 	 */
-	private static int[] getPixelsFromImage(Image scaledImage, int deviceXSize, int deviceYSize) {
-		int[] pixels = new int[deviceXSize*deviceYSize];
-		PixelGrabber pg = new PixelGrabber(scaledImage, 0, 0, deviceXSize, deviceYSize, pixels, 0, deviceXSize);
-		try {
-			pg.grabPixels();
-		} catch (InterruptedException e) {
-			log.log(Level.WARNING, "interrupted waiting for pixels!");
-		}
-		if ((pg.getStatus() & ImageObserver.ABORT) != 0) {
-			log.log(Level.WARNING, "image fetch aborted or errored");
-		}
-		return pixels;
+	/**
+	 * internal use - get buffer from image
+	 * @param scaledImage
+	 * @param deviceXSize
+	 * @param deviceYSize
+	 * @return
+	 */
+	private static int[] getPixelsFromImage(BufferedImage scaledImage, int deviceXSize, int deviceYSize) {
+		return scaledImage.getRGB(0, 0, deviceXSize, deviceYSize, null, 0, deviceXSize);
 	}
+
 }
