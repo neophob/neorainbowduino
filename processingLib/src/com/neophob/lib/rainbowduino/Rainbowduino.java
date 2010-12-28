@@ -153,6 +153,8 @@ public class Rainbowduino {
 	public Rainbowduino(PApplet _app, String portName, int baud, List<Integer> rainbowduinoAddr) 
 		throws NoSerialPortFoundException {
 		
+		log.log(Level.INFO,	"Initialize neorainbowduino lib v{0}", VERSION);
+		
 		this.app = _app;
 		app.registerDispose(this);
 		

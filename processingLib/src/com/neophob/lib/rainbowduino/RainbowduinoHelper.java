@@ -1,17 +1,10 @@
 package com.neophob.lib.rainbowduino;
 
-import java.awt.Image;
-import java.awt.Toolkit;
-import java.awt.image.AreaAveragingScaleFilter;
 import java.awt.image.BufferedImage;
-import java.awt.image.FilteredImageSource;
-import java.awt.image.ImageObserver;
-import java.awt.image.PixelGrabber;
-import java.awt.image.ReplicateScaleFilter;
+import java.awt.image.DataBufferInt;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -229,7 +222,10 @@ public class RainbowduinoHelper {
 	 * @return
 	 */
 	private static int[] getPixelsFromImage(BufferedImage scaledImage, int deviceXSize, int deviceYSize) {
-		return scaledImage.getRGB(0, 0, deviceXSize, deviceYSize, null, 0, deviceXSize);
+		//painfull slow!
+		//return scaledImage.getRGB(0, 0, deviceXSize, deviceYSize, null, 0, deviceXSize);
+		DataBufferInt buf = (DataBufferInt) scaledImage.getRaster().getDataBuffer();
+		return buf.getData();
 	}
 
 }
