@@ -25,6 +25,7 @@
 //Checking if a bit is set: if (byte & (1 << bit))
 //Checking if a bit is cleared: if (~byte & (1 << bit)) OR if (!(byte & (1 << bit)))
 
+//potential take too long! -> PORTC&=~0x02;PORTC|=0x02
 #define CLK_RISING  {SH_PORT_CLK&=~SH_BIT_CLK;SH_PORT_CLK|=SH_BIT_CLK;}
 #define LE_HIGH     {SH_PORT_LE|=SH_BIT_LE;}
 #define LE_LOW      {SH_PORT_LE&=~SH_BIT_LE;}
@@ -32,6 +33,7 @@
 #define DISABLE_OE  {SH_PORT_OE|=SH_BIT_OE;}
 
 #define SHIFT_DATA_1     {SH_PORT_SDI|=SH_BIT_SDI;}
+//potential take too long! -> PORTC&=~0x01
 #define SHIFT_DATA_0     {SH_PORT_SDI&=~SH_BIT_SDI;}
 
 #endif
