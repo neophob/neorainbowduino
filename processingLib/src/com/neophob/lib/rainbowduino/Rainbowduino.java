@@ -771,6 +771,22 @@ public class Rainbowduino {
 		}
 	}
 
+
+	/**
+	 * Scan I2C bus on a connected rainbowduino device
+	 * @return List of found i2c devices
+	 */
+	public List<Integer> scanI2cBus() {
+		try {
+			this.i2cBusScan();
+		} catch (Exception e) {
+			log.log(Level.WARNING, "I2C scanner failed: {0}", e);
+		}
+				
+		return scannedI2cDevices;
+	}
+	
+	
 	/**
 	 * Scan I2C bus
 	 * @param _app
@@ -799,11 +815,11 @@ public class Rainbowduino {
 		
 		try {
 			r = new Rainbowduino(_app, new ArrayList<Integer>());
+			r.i2cBusScan();
 		} catch (Exception e) {
 			log.log(Level.WARNING, "I2C scanner failed: {0}", e);
 		}
-		
-		r.i2cBusScan();
+				
 		return r.scannedI2cDevices;
 	}
 
