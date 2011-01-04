@@ -191,7 +191,7 @@ public class RainbowduinoHelper {
 	 * @return
 	 */
 	public static int[] resizeImage(int[] buffer, int newXSize, int newYSize, int oldXSize, int oldYSize) {
-		return multiStepBilinearResize(buffer, oldXSize, oldYSize, newXSize, newYSize);
+		return multiStepBilinearResize(buffer, newXSize, newYSize, oldXSize, oldYSize);
 	}
 	
 	/**
