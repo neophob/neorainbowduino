@@ -65,7 +65,7 @@ public class Rainbowduino {
 	/** 
 	 * internal lib version
 	 */
-	public static final String VERSION = "1.6";
+	public static final String VERSION = "1.7";
 
 	private static final byte START_OF_CMD = 0x01;
 	private static final byte CMD_SENDFRAME = 0x03;
@@ -409,15 +409,8 @@ public class Rainbowduino {
 		rightImg.copy(data, data.width/2, 0, data.width/2, data.height, 0, 0, data.width/2, data.height);		
 		data.updatePixels();
 		
-		leftImg.loadPixels();
-		int[] resizedImageLeft = 
-			RainbowduinoHelper.resizeImage(leftImg.pixels, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, leftImg.width, leftImg.height);
-		leftImg.updatePixels();
-		
-		rightImg.loadPixels();
-		int[] resizedImageRight = 
-			RainbowduinoHelper.resizeImage(rightImg.pixels, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, rightImg.width, rightImg.height);
-		rightImg.updatePixels();
+		int[] resizedImageLeft = resizeImageIfNeeded(leftImg);
+		int[] resizedImageRight = resizeImageIfNeeded(rightImg);
 		
 		boolean bl = sendFrame(addrLeft, RainbowduinoHelper.convertRgbToRainbowduino(resizedImageLeft));
 		boolean br = sendFrame(addrRight, RainbowduinoHelper.convertRgbToRainbowduino(resizedImageRight));
@@ -448,6 +441,22 @@ public class Rainbowduino {
 		return sendRgbFrame(addrTopLeft, addrTopRight, addrBottomLeft, addrBottomRight, img);
 	}
 	
+	/**
+	 * resize a PImage if needed and return pixel data
+	 * @param image
+	 * @return
+	 */
+	private int[] resizeImageIfNeeded(PImage image) {
+		int[] ret;
+		image.loadPixels();
+		if (image.width == NR_OF_LED_HORIZONTAL && image.height == NR_OF_LED_VERTICAL) {
+			ret = image.pixels;
+		} else {
+			ret = RainbowduinoHelper.resizeImage(image.pixels, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, image.width, image.height);
+		}	
+		image.updatePixels();
+		return ret;
+	}
 	
 	/**
 	 * Send a PImage to four Rainbowduino Device arranged as cube
@@ -473,25 +482,10 @@ public class Rainbowduino {
 		bottomRightImg.copy(data, data.width/2, data.height/2, data.width/2, data.height/2, 0, 0, data.width/2, data.height/2);		
 		data.updatePixels();
 		
-		topLeftImg.loadPixels();
-		int[] resizedImageTopLeft = 
-			RainbowduinoHelper.resizeImage(topLeftImg.pixels, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, topLeftImg.width, topLeftImg.height);
-		topLeftImg.updatePixels();
-		
-		topRightImg.loadPixels();
-		int[] resizedImageTopRight = 
-			RainbowduinoHelper.resizeImage(topRightImg.pixels, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, topRightImg.width, topRightImg.height);
-		topRightImg.updatePixels();
-
-		bottomLeftImg.loadPixels();
-		int[] resizedImageBottomLeft = 
-			RainbowduinoHelper.resizeImage(bottomLeftImg.pixels, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, bottomLeftImg.width, bottomLeftImg.height);
-		bottomLeftImg.updatePixels();
-		
-		bottomRightImg.loadPixels();
-		int[] resizedImageBottomRight = 
-			RainbowduinoHelper.resizeImage(bottomRightImg.pixels, NR_OF_LED_HORIZONTAL, NR_OF_LED_VERTICAL, bottomRightImg.width, bottomRightImg.height);
-		bottomRightImg.updatePixels();
+		int[] resizedImageTopLeft = resizeImageIfNeeded(topLeftImg);
+		int[] resizedImageTopRight = resizeImageIfNeeded(topRightImg);
+		int[] resizedImageBottomLeft = resizeImageIfNeeded(bottomLeftImg);
+		int[] resizedImageBottomRight = resizeImageIfNeeded(bottomRightImg);
 
 		boolean btl = sendFrame(addrTopLeft, RainbowduinoHelper.convertRgbToRainbowduino(resizedImageTopLeft));
 		boolean btr = sendFrame(addrTopRight, RainbowduinoHelper.convertRgbToRainbowduino(resizedImageTopRight));
