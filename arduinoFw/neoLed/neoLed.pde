@@ -97,18 +97,18 @@ static void sendAck() {
 
 //send an white image to the target rainbowduino
 //contains red led's which describe its i2c addr
-int send_initial_image(byte i2caddr) {
+byte send_initial_image(byte i2caddr) {
   //clear whole buffer
   memset(serInStr, CLEARCOL, 128);
 
   //draw i2c addr as led pixels
   float tail = i2caddr/2.0f;
-  int tail2 = (int)(tail);
-  boolean useTail = (tail-(int)(tail))!=0;			
+  byte tail2 = (byte)(tail);
+  boolean useTail = (tail-(byte)(tail))!=0;			
 
   //buffer layout: 32b RED, 32b GREEN, 32b BLUE
-  int ofs=0;
-  for (int i=0; i<tail2; i++) {
+  byte ofs=0;
+  for (byte i=0; i<tail2; i++) {
     serInStr[ofs++]=255;
   }
   if (useTail) {
