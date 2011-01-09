@@ -36,6 +36,7 @@
 
 #include <Wire.h>
 #include <FlexiTimer2.h>
+
 #include "Rainbow.h"
 
 /*
@@ -189,39 +190,42 @@ void displayNextLine() {
 // scan one line, open the scaning row
 void draw_next_line() {
   DISABLE_OE;            // TODO: what does this do?
+  enable_row(g_line);
 
-  enable_current_row();
-  
-  LE_HIGH;              // TODO: what does this do?
-  shift_24_bit();       // feed the leds
+  LE_HIGH;              // TODO: what does this do?  
+  shift_24_bit(g_level, g_line);       // feed the leds
   LE_LOW; 				// TODO: what does this do?
   
   ENABLE_OE;
 }
 
-void enable_current_row() {
-  //open the current line (variable g_line)
-  if(g_line < 3) {    // Open the line and close others
-    PORTB = (PINB & ~0x07) | 0x04 >> g_line;
-    PORTD = (PIND & ~0xF8);
-  } 
-  else {
-    PORTB = (PINB & ~0x07);
-    PORTD = (PIND & ~0xF8) | 0x80 >> (g_line - 3);
+//PINB - The Port B Input Pins Register - read only
+//PORTB - The Port B Data Register - read/write
+//PIND - The Port D Input Pins Register - read only
+//PORTD - The Port D Data Register - read/write
+
+//open correct output pins
+void enable_row(uint8_t row) {
+  if(row < 3) {    // Open the line and close others
+    PORTB = (PINB & 0xF8) | 0x04 >> row;
+    PORTD =  PIND & 0x07;
+  } else {
+    PORTB =  PINB & 0xF8;
+    PORTD = (PIND & 0x07) | 0x80 >> (row - 3);
   }
 }
 
 // display one line by the color level in buff
-void shift_24_bit() { 
+void shift_24_bit(uint8_t level, uint8_t line) { 
   byte color,row,data0,data1; 
-    
+
   for (color=0;color<3;color++) {    // Color format GRB 
     for (row=0;row<4;row++) { 
       //get pixel from buffer
-      data1=buffer[g_bufCurr][color][g_line][row]&0x0f;
-      data0=buffer[g_bufCurr][color][g_line][row]>>4;
+      data1=buffer[g_bufCurr][color][line][row]&0x0f;
+      data0=buffer[g_bufCurr][color][line][row]>>4;
 
-      if(data0>g_level) { // is this pixel visible in current level (=brightness)
+      if(data0>level) { // is this pixel visible in current level (=brightness)
         SHIFT_DATA_1     // yes - light on
       } 
       else {
@@ -229,7 +233,7 @@ void shift_24_bit() {
       }
       CLK_RISING
 
-      if(data1>g_level) {
+      if(data1>level) {
         SHIFT_DATA_1      // TODO: what does this do?
       } 
       else {
@@ -237,19 +241,7 @@ void shift_24_bit() {
       }
       CLK_RISING
     } 
+    
   } 
 }
 
-//ripped from toby's firmware
-void draw_color(uint8_t c) {
-  for(uint8_t color = 0; color < 8; color++) {
-    if((c & 1) == 1) {
-      SHIFT_DATA_1
-    }
-    else {
-      SHIFT_DATA_0
-    }
-    c = c >> 1;
-    CLK_RISING
-  }
-}
