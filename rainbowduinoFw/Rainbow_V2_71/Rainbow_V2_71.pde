@@ -189,22 +189,19 @@ void displayNextLine() {
 
 // scan one line, open the scaning row
 void draw_next_line() {
-  DISABLE_OE;            // TODO: what does this do?
-  enable_row(g_line);
+  DISABLE_OE;           //disable MBI5168 output
+  enable_row(g_line);	// setup super source driver
 
   LE_HIGH;              // TODO: what does this do?  
   shift_24_bit(g_level, g_line);       // feed the leds
   LE_LOW; 				// TODO: what does this do?
   
-  ENABLE_OE;
+  ENABLE_OE;			//enable MBI5168 output
 }
 
-//PINB - The Port B Input Pins Register - read only
-//PORTB - The Port B Data Register - read/write
-//PIND - The Port D Input Pins Register - read only
-//PORTD - The Port D Data Register - read/write
-
-//open correct output pins
+//open correct output pins, used to setup the "super source driver"
+//PB0 - VCC3, PB1 - VCC2, PB2 - VCC1
+//PD3 - VCC8, PD4 - VCC7, PD5 - VCC6, PD6 - VCC5, PD7 - VCC4
 void enable_row(uint8_t row) {
   if(row < 3) {    // Open the line and close others
     PORTB = (PINB & 0xF8) | 0x04 >> row;
