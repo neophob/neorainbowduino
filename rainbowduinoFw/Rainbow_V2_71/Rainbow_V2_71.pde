@@ -189,12 +189,12 @@ void displayNextLine() {
 
 // scan one line, open the scaning row
 void draw_next_line() {
-  DISABLE_OE;           //disable MBI5168 output
-  enable_row(g_line);	// setup super source driver
+  DISABLE_OE;           //disable MBI5168 output (all metrix output blanked)
+  enable_row(g_line);	//setup super source driver (trigger the VCC power lane)
 
-  LE_HIGH;              // TODO: what does this do?  
+  LE_HIGH;              //enable serial input for the MBI5168
   shift_24_bit(g_level, g_line);       // feed the leds
-  LE_LOW; 				// TODO: what does this do?
+  LE_LOW; 				//disable serial input for the MBI5168, latch the data
   
   ENABLE_OE;			//enable MBI5168 output
 }
