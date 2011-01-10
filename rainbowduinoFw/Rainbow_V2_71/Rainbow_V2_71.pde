@@ -1,5 +1,5 @@
 /*
- * rainbowduino firmware, Copyright (C) 2010 michael vogt <michu@neophob.com>
+ * rainbowduino firmware, Copyright (C) 2010-2011 michael vogt <michu@neophob.com>
  *  
  * based on 
  * -blinkm firmware by thingM
@@ -66,6 +66,10 @@ byte g_circle;
 //FPS
 #define FPS 80.0f
 
+#define BRIGHTNESS_LEVELS 16
+#define LED_LINES
+#define CIRCLE BRIGHTNESS_LEVELS*LED_LINES
+
 void setup() {
   DDRD=0xff;        // Configure ports (see http://www.arduino.cc/en/Reference/PortManipulation): digital pins 0-7 as OUTPUT
   DDRC=0xff;        // analog pins 0-5 as OUTPUT
@@ -88,7 +92,7 @@ void setup() {
   // are display errors!
 
   //redraw screen 80 times/s
-  FlexiTimer2::set(1, 1.0f/(128.0f*FPS), displayNextLine);
+  FlexiTimer2::set(1, 1.0f/((float)(CIRCLE)*FPS), displayNextLine);
   FlexiTimer2::start();                            //start interrupt code
 }
 
@@ -139,19 +143,18 @@ void receiveEvent(int numBytes) {
 //           using a 10khz resolution means, we get 10000/128 = 78.125 frames/s
 // TODO: try to implement an interlaced update at the same rate. 
 void displayNextLine() { 
-  draw_next_line();  // scan the next line in LED matrix level by level. 
-  g_line++;                                      // process all 8 lines of the led matrix 
-  if(g_line>7) {                                 // when have scaned all LED's, back to line 0 and add the level 
+  draw_next_line();									// scan the next line in LED matrix level by level. 
+  g_line++;											// process all 8 lines of the led matrix 
+  if(g_line>7) {									// when have scaned all LED's, back to line 0 and add the level 
     g_line=0; 
-    g_level++;                                   // g_level controls the brightness of a pixel. 
-    if (g_level>15) {                            // there are 16 levels of brightness (4bit) * 3 colors = 12bit resolution
+    g_level++;										// g_level controls the brightness of a pixel. 
+    if (g_level>15) {								// there are 16 levels of brightness (4bit) * 3 colors = 12bit resolution
       g_level=0; 
     } 
   }
   g_circle++;
   
-  //check end of circle (16*8)
-  if (g_circle==128) {
+  if (g_circle==CIRCLE) {							// check end of circle - swap only if we're finished drawing a full frame!
     if (g_swapNow==1) {
       g_swapNow = 0;
       g_bufCurr = !g_bufCurr;
@@ -192,8 +195,8 @@ void enable_row(uint8_t row) {
 void shift_24_bit(uint8_t level, uint8_t line) { 
   byte color,row,data0,data1,ofs; 
 
-  for (color=0;color<3;color++) {    // Color format GRB
-    ofs = color*32+line*4; 
+  for (color=0;color<3;color++) {							//Color format GRB
+    ofs = color*32+line*4;									//calculate offset, each color need 32bytes 			
     for (row=0;row<4;row++) { 
       //get pixel from buffer
 //      data1=buffer[g_bufCurr][color][line][row]&0x0f;
@@ -210,7 +213,7 @@ void shift_24_bit(uint8_t level, uint8_t line) {
       CLK_RISING			//send notice to the MBI5168 that serial data should be processed 
 
       if(data1>level) {
-        SHIFT_DATA_1      	//send high to the MBI5168 serial input (SDI)
+        SHIFT_DATA_1		//send high to the MBI5168 serial input (SDI)
       } 
       else {
         SHIFT_DATA_0		//send low to the MBI5168 serial input (SDI)
