@@ -8,13 +8,19 @@
 //PORTC maps to Arduino analog pins 0 to 5. Pins 6 & 7 are only accessible on the Arduino Mini
 //PORTC - The Port C Data Register - read/write
 
+//pin 23 of the arduino maps to first MBI5169 (blue) SDI input
 #define SH_BIT_SDI   0x01
 #define SH_BIT_SDI_I 0xFE
+
+//pin 24 of the arduino maps to the MBI5169 CLN input
 #define SH_BIT_CLK   0x02
 #define SH_BIT_CLK_I 0xFD
 
+//pin 25 of the arduino maps to the MBI5169 LE input
 #define SH_BIT_LE    0x04
 #define SH_BIT_LE_I  0xFB
+
+//pin 26 of the arduino maps to the MBI5169 OE input
 #define SH_BIT_OE    0x08
 #define SH_BIT_OE_I  0xF7
 
@@ -44,6 +50,17 @@
 #define SHIFT_DATA_1     {PORTC |= SH_BIT_SDI;}
 //potential take too long! -> PORTC&=~0x01
 #define SHIFT_DATA_0     {PORTC &= SH_BIT_SDI_I;}
+
+
+#define open_line0      {PORTB=0x04;}
+#define open_line1      {PORTB=0x02;}
+#define open_line2      {PORTB=0x01;}
+#define open_line3      {PORTD=0x80;}
+#define open_line4      {PORTD=0x40;}
+#define open_line5      {PORTD=0x20;}
+#define open_line6      {PORTD=0x10;}
+#define open_line7      {PORTD=0x08;}
+#define CLOSE_ALL_LINE  {PORTD&=~0xf8; PORTB&=~0x07;}
 
 #endif
 

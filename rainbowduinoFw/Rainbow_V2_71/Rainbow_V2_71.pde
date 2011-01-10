@@ -189,14 +189,16 @@ void displayNextLine() {
 
 // scan one line, open the scaning row
 void draw_next_line() {
-  DISABLE_OE;           //disable MBI5168 output (all metrix output blanked)
-  enable_row(g_line);	//setup super source driver (trigger the VCC power lane)
+  DISABLE_OE						//disable MBI5168 output (matrix output blanked)
+  CLOSE_ALL_LINE					//super source driver, select all outputs off
+  //enable_row(g_line);				//setup super source driver (trigger the VCC power lane)
+  open_line(g_line);
 
-  LE_HIGH;              //enable serial input for the MBI5168
-  shift_24_bit(g_level, g_line);       // feed the leds
-  LE_LOW; 				//disable serial input for the MBI5168, latch the data
+  LE_HIGH							//enable serial input for the MBI5168
+  shift_24_bit(g_level, g_line);	// feed the leds
+  LE_LOW							//disable serial input for the MBI5168, latch the data
   
-  ENABLE_OE;			//enable MBI5168 output
+  ENABLE_OE							//enable MBI5168 output
 }
 
 //open correct output pins, used to setup the "super source driver"
@@ -222,23 +224,58 @@ void shift_24_bit(uint8_t level, uint8_t line) {
       data1=buffer[g_bufCurr][color][line][row]&0x0f;
       data0=buffer[g_bufCurr][color][line][row]>>4;
 
-      if(data0>level) { // is this pixel visible in current level (=brightness)
-        SHIFT_DATA_1     // yes - light on
+      if(data0>level) { 	//is current pixel visible for current level (=brightness)
+        SHIFT_DATA_1		//send high to the MBI5168 serial input (SDI)
       } 
       else {
-        SHIFT_DATA_0    // no        
+        SHIFT_DATA_0		//send low to the MBI5168 serial input (SDI)       
       }
-      CLK_RISING
+      CLK_RISING			//send notice to the MBI5168 that serial data should be processed 
 
       if(data1>level) {
-        SHIFT_DATA_1      // TODO: what does this do?
+        SHIFT_DATA_1      	//send high to the MBI5168 serial input (SDI)
       } 
       else {
-        SHIFT_DATA_0
+        SHIFT_DATA_0		//send low to the MBI5168 serial input (SDI)
       }
-      CLK_RISING
-    } 
-    
+      CLK_RISING			//send notice to the MBI5168 that serial data should be processed
+    }     
   } 
 }
 
+void open_line(unsigned char line) {    // open the scaning line 
+  switch(line) {
+  case 0: {
+      open_line0
+      break;
+    }
+  case 1: {
+      open_line1
+      break;
+    }
+  case 2: {
+      open_line2
+      break;
+    }
+  case 3: {
+      open_line3
+      break;
+    }
+  case 4: {
+      open_line4
+      break;
+    }
+  case 5: {
+      open_line5
+      break;
+    }
+  case 6: {
+      open_line6
+      break;
+    }
+  case 7: {
+      open_line7
+      break;
+    }
+  }
+}
