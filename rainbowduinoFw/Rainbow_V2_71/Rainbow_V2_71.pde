@@ -67,7 +67,7 @@ byte g_circle;
 #define FPS 80.0f
 
 #define BRIGHTNESS_LEVELS 16
-#define LED_LINES
+#define LED_LINES 8
 #define CIRCLE BRIGHTNESS_LEVELS*LED_LINES
 
 void setup() {
@@ -92,7 +92,7 @@ void setup() {
   // are display errors!
 
   //redraw screen 80 times/s
-  FlexiTimer2::set(1, 1.0f/((float)(CIRCLE)*FPS), displayNextLine);
+  FlexiTimer2::set(1, 1.0f/(128.f*FPS), displayNextLine);
   FlexiTimer2::start();                            //start interrupt code
 }
 
@@ -117,7 +117,7 @@ void loop() {
     //read end of data marker
     if (Wire.receive()==END_OF_DATA) {
         //set the 'we need to blit' flag
-  		g_swapNow = 1;
+  	g_swapNow = 1;
     } 
   }
 }
@@ -154,7 +154,8 @@ void displayNextLine() {
   }
   g_circle++;
   
-  if (g_circle==CIRCLE) {							// check end of circle - swap only if we're finished drawing a full frame!
+  if (g_circle==128) {							// check end of circle - swap only if we're finished drawing a full frame!
+
     if (g_swapNow==1) {
       g_swapNow = 0;
       g_bufCurr = !g_bufCurr;
@@ -167,12 +168,12 @@ void displayNextLine() {
 // scan one line, open the scaning row
 void draw_next_line() {
   DISABLE_OE						//disable MBI5168 output (matrix output blanked)
-  CLOSE_ALL_LINE					//super source driver, select all outputs off
-  //enable_row(g_line);				//setup super source driver (trigger the VCC power lane)
-  open_line(g_line);
+  //CLOSE_ALL_LINE					//super source driver, select all outputs off
+  enable_row();				//setup super source driver (trigger the VCC power lane)
+  //open_line(g_line);
 
   LE_HIGH							//enable serial input for the MBI5168
-  shift_24_bit(g_level, g_line);	// feed the leds
+  shift_24_bit();	// feed the leds
   LE_LOW							//disable serial input for the MBI5168, latch the data
   
   ENABLE_OE							//enable MBI5168 output
@@ -181,30 +182,31 @@ void draw_next_line() {
 //open correct output pins, used to setup the "super source driver"
 //PB0 - VCC3, PB1 - VCC2, PB2 - VCC1
 //PD3 - VCC8, PD4 - VCC7, PD5 - VCC6, PD6 - VCC5, PD7 - VCC4
-void enable_row(uint8_t row) {
-  if(row < 3) {    // Open the line and close others
-    PORTB = (PINB & 0xF8) | 0x04 >> row;
+void enable_row() {
+  if (g_line < 3) {    // Open the line and close others
+    PORTB = (PINB & 0xF8) | 0x04 >> g_line;
     PORTD =  PIND & 0x07;
   } else {
     PORTB =  PINB & 0xF8;
-    PORTD = (PIND & 0x07) | 0x80 >> (row - 3);
+    PORTD = (PIND & 0x07) | 0x80 >> (g_line - 3);
   }
 }
 
 // display one line by the color level in buff
-void shift_24_bit(uint8_t level, uint8_t line) { 
+void shift_24_bit() { 
   byte color,row,data0,data1,ofs; 
 
   for (color=0;color<3;color++) {							//Color format GRB
-    ofs = color*32+line*4;									//calculate offset, each color need 32bytes 			
+    ofs = color*32+g_line*4;									//calculate offset, each color need 32bytes 			
     for (row=0;row<4;row++) { 
       //get pixel from buffer
 //      data1=buffer[g_bufCurr][color][line][row]&0x0f;
 //      data0=buffer[g_bufCurr][color][line][row]>>4;
-      data1=buffer[g_bufCurr][ofs+row]&0x0f;
-      data0=buffer[g_bufCurr][ofs+row]>>4;
+      data1=buffer[g_bufCurr][ofs]&0x0f;
+      data0=buffer[g_bufCurr][ofs]>>4;
+      ofs++;
 
-      if(data0>level) { 	//is current pixel visible for current level (=brightness)
+      if(data0>g_level) { 	//is current pixel visible for current level (=brightness)
         SHIFT_DATA_1		//send high to the MBI5168 serial input (SDI)
       } 
       else {
@@ -212,7 +214,7 @@ void shift_24_bit(uint8_t level, uint8_t line) {
       }
       CLK_RISING			//send notice to the MBI5168 that serial data should be processed 
 
-      if(data1>level) {
+      if(data1>g_level) {
         SHIFT_DATA_1		//send high to the MBI5168 serial input (SDI)
       } 
       else {
@@ -220,7 +222,7 @@ void shift_24_bit(uint8_t level, uint8_t line) {
       }
       CLK_RISING			//send notice to the MBI5168 that serial data should be processed
     }     
-  } 
+  }
 }
 
 void open_line(unsigned char line) {    // open the scaning line 

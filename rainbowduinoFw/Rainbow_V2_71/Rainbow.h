@@ -10,19 +10,15 @@
 
 //pin 23 of the arduino maps to first MBI5169 (blue) SDI input
 #define SH_BIT_SDI   0x01
-#define SH_BIT_SDI_I 0xFE
 
 //pin 24 of the arduino maps to the MBI5169 CLN input
 #define SH_BIT_CLK   0x02
-#define SH_BIT_CLK_I 0xFD
 
 //pin 25 of the arduino maps to the MBI5169 LE input
 #define SH_BIT_LE    0x04
-#define SH_BIT_LE_I  0xFB
 
 //pin 26 of the arduino maps to the MBI5169 OE input
 #define SH_BIT_OE    0x08
-#define SH_BIT_OE_I  0xF7
 
 //============================================
 
@@ -35,21 +31,21 @@
 
 //potential take too long! -> PORTC &=~0x02; PORTC|=0x02
 //Clock input terminal for data shift on rising edge
-#define CLK_RISING  {PORTC &= SH_BIT_CLK_I; PORTC |= SH_BIT_CLK;}
+#define CLK_RISING  {PORTC &=~ SH_BIT_CLK; PORTC |= SH_BIT_CLK;}
 
 //Data strobe input terminal, Serial data is transfered to the respective latch when LE is high. 
 //The data is latched when LE goes low.
 #define LE_HIGH     {PORTC |= SH_BIT_LE;}
-#define LE_LOW      {PORTC &= SH_BIT_LE_I;}
+#define LE_LOW      {PORTC &=~ SH_BIT_LE;}
 
 //Output Enabled, when (active) low, the output drivers are enabled; 
 //when high, all output drivers are turned OFF (blanked).
-#define ENABLE_OE   {PORTC &= SH_BIT_OE_I;}
+#define ENABLE_OE   {PORTC &=~ SH_BIT_OE;}
 #define DISABLE_OE  {PORTC |= SH_BIT_OE;}
 
 #define SHIFT_DATA_1     {PORTC |= SH_BIT_SDI;}
 //potential take too long! -> PORTC&=~0x01
-#define SHIFT_DATA_0     {PORTC &= SH_BIT_SDI_I;}
+#define SHIFT_DATA_0     {PORTC &=~ SH_BIT_SDI;}
 
 
 #define open_line0      {PORTB=0x04;}
