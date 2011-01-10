@@ -193,7 +193,7 @@ void shift_24_bit(uint8_t level, uint8_t line) {
   byte color,row,data0,data1,ofs; 
 
   for (color=0;color<3;color++) {    // Color format GRB
-    ofs = color*32+line*8; 
+    ofs = color*32+line*4; 
     for (row=0;row<4;row++) { 
       //get pixel from buffer
 //      data1=buffer[g_bufCurr][color][line][row]&0x0f;
