@@ -154,7 +154,7 @@ void displayNextLine() {
   }
   g_circle++;
   
-  if (g_circle==128) {							// check end of circle - swap only if we're finished drawing a full frame!
+  if (g_circle==CIRCLE) {							// check end of circle - swap only if we're finished drawing a full frame!
 
     if (g_swapNow==1) {
       g_swapNow = 0;
@@ -200,8 +200,6 @@ void shift_24_bit() {
     ofs = color*32+g_line*4;									//calculate offset, each color need 32bytes 			
     for (row=0;row<4;row++) { 
       //get pixel from buffer
-//      data1=buffer[g_bufCurr][color][line][row]&0x0f;
-//      data0=buffer[g_bufCurr][color][line][row]>>4;
       data1=buffer[g_bufCurr][ofs]&0x0f;
       data0=buffer[g_bufCurr][ofs]>>4;
       ofs++;
