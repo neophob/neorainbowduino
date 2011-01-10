@@ -46,8 +46,7 @@ A variable should be declared volatile whenever its value can be changed by some
  interrupt service routine.
  */
 
-extern unsigned char buffer[2][3][8][4];  //define Two Buffs (one for Display ,the other for receive data)
-unsigned char imageBuffer[96];            //buffer used to read data from i2c bus
+extern unsigned char buffer[2][96];  //define Two Buffs (one for Display ,the other for receive data)
 
 //interrupt variables
 byte g_line,g_level;
@@ -104,15 +103,17 @@ void loop() {
       return;
     }
 
+    byte backbuffer = !g_bufCurr;
     b=0;
     //read image data (payload) - an image size is exactly 96 bytes
     while (b<96) { 
-      imageBuffer[b++]=Wire.receive();  //recieve whatever is available
+      buffer[backbuffer] = [b++]=Wire.receive();  //recieve whatever is available
     }
 
     //read end of data marker
     if (Wire.receive()==END_OF_DATA) {
-      DispshowFrame();
+        //set the 'we need to blit' flag
+  		g_swapNow = 1;
     } 
   }
 }
@@ -126,33 +127,6 @@ void loop() {
 //collect only data here and process it in the main loop!
 void receiveEvent(int numBytes) {
   //do nothing here
-}
-
-
-//==============DISPSHOW========================================
-
-//copy data from the i2c bus into backbuffer and set the g_swapNow flag
-void DispshowFrame(void) {
-  byte color,row,dots,ofs;
-
-  //this shoud not be needed, as the swapping is done much faster!
-  //do not fill buffer if we still wait for the blit!
-//  if (g_swapNow==1) {
-//    return;
-//  }
-
-  ofs=0;
-  for (color=0; color<3; color++) {
-    for (row=0; row<8; row++) {
-      for (dots=0;dots<4;dots++) {
-        //format: 32b G, 32b R, 32b B
-        buffer[!g_bufCurr][color][row][dots]=imageBuffer[ofs++];  //get byte info for two dots directly from command
-      }
-    }
-  }
-
-  //set the 'we need to blit' flag
-  g_swapNow = 1;
 }
 
 
@@ -181,7 +155,7 @@ void displayNextLine() {
     if (g_swapNow==1) {
       g_swapNow = 0;
       g_bufCurr = !g_bufCurr;
-    }    
+    }
     g_circle = 0;
   }
 }
@@ -216,13 +190,16 @@ void enable_row(uint8_t row) {
 
 // display one line by the color level in buff
 void shift_24_bit(uint8_t level, uint8_t line) { 
-  byte color,row,data0,data1; 
+  byte color,row,data0,data1,ofs; 
 
-  for (color=0;color<3;color++) {    // Color format GRB 
+  for (color=0;color<3;color++) {    // Color format GRB
+    ofs = color*32+line*8; 
     for (row=0;row<4;row++) { 
       //get pixel from buffer
-      data1=buffer[g_bufCurr][color][line][row]&0x0f;
-      data0=buffer[g_bufCurr][color][line][row]>>4;
+//      data1=buffer[g_bufCurr][color][line][row]&0x0f;
+//      data0=buffer[g_bufCurr][color][line][row]>>4;
+      data1=buffer[g_bufCurr][ofs+row]&0x0f;
+      data0=buffer[g_bufCurr][ofs+row]>>4;
 
       if(data0>level) { 	//is current pixel visible for current level (=brightness)
         SHIFT_DATA_1		//send high to the MBI5168 serial input (SDI)
