@@ -107,7 +107,7 @@ void loop() {
     b=0;
     //read image data (payload) - an image size is exactly 96 bytes
     while (b<96) { 
-      buffer[backbuffer] = [b++]=Wire.receive();  //recieve whatever is available
+      buffer[backbuffer][b++] = Wire.receive();  //recieve whatever is available
     }
 
     //read end of data marker
