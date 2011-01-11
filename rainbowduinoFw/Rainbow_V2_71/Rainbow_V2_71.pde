@@ -144,11 +144,14 @@ void receiveEvent(int numBytes) {
 // TODO: try to implement an interlaced update at the same rate. 
 void displayNextLine() { 
   draw_next_line();									// scan the next line in LED matrix level by level. 
-  g_line++;											// process all 8 lines of the led matrix 
-  if(g_line>7) {									// when have scaned all LED's, back to line 0 and add the level 
+  g_line+=2;	 								        // process all 8 lines of the led matrix 
+  if(g_line==LED_LINES) {
+    g_line=1;
+  }
+  if(g_line>LED_LINES) {								// when have scaned all LED's, back to line 0 and add the level 
     g_line=0; 
     g_level++;										// g_level controls the brightness of a pixel. 
-    if (g_level>15) {								// there are 16 levels of brightness (4bit) * 3 colors = 12bit resolution
+    if (g_level>=BRIGHTNESS_LEVELS) {							// there are 16 levels of brightness (4bit) * 3 colors = 12bit resolution
       g_level=0; 
     } 
   }
@@ -168,9 +171,9 @@ void displayNextLine() {
 // scan one line, open the scaning row
 void draw_next_line() {
   DISABLE_OE						//disable MBI5168 output (matrix output blanked)
-  enable_row();				                //setup super source driver (trigger the VCC power lane)
-  //CLOSE_ALL_LINE					//super source driver, select all outputs off
-  //open_line(g_line);
+  //enable_row();				                //setup super source driver (trigger the VCC power lane)
+  CLOSE_ALL_LINE					//super source driver, select all outputs off
+  open_line(g_line);
 
   LE_HIGH							//enable serial input for the MBI5168
   shift_24_bit();	// feed the leds
@@ -197,8 +200,10 @@ void shift_24_bit() {
   byte color,row,data0,data1,ofs; 
 
   for (color=0;color<3;color++) {	           	//Color format GRB
-    ofs = color*32+g_line*4;				//calculate offset, each color need 32bytes 			
-    for (row=0;row<4;row++) {       
+    ofs = color*32+g_line*4;				//calculate offset, each color need 32bytes
+    			
+    for (row=0;row<4;row++) {    
+      
       data1=buffer[g_bufCurr][ofs]&0x0f;                //get pixel from buffer, one byte = two pixels
       data0=buffer[g_bufCurr][ofs]>>4;
       ofs++;
