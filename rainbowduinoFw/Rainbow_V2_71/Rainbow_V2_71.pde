@@ -46,7 +46,7 @@ A variable should be declared volatile whenever its value can be changed by some
  interrupt service routine.
  */
 
-extern unsigned char buffer[2][96];  //define Two Buffs (one for Display ,the other for receive data)
+extern unsigned char buffer[2][96];  //two buffers (backbuffer and frontbuffer)
 
 //interrupt variables
 byte g_line,g_level;
@@ -168,8 +168,8 @@ void displayNextLine() {
 // scan one line, open the scaning row
 void draw_next_line() {
   DISABLE_OE						//disable MBI5168 output (matrix output blanked)
+  enable_row();				                //setup super source driver (trigger the VCC power lane)
   //CLOSE_ALL_LINE					//super source driver, select all outputs off
-  enable_row();				//setup super source driver (trigger the VCC power lane)
   //open_line(g_line);
 
   LE_HIGH							//enable serial input for the MBI5168
@@ -192,15 +192,14 @@ void enable_row() {
   }
 }
 
-// display one line by the color level in buff
+// display one line by the color level in buffer
 void shift_24_bit() { 
   byte color,row,data0,data1,ofs; 
 
-  for (color=0;color<3;color++) {							//Color format GRB
-    ofs = color*32+g_line*4;									//calculate offset, each color need 32bytes 			
-    for (row=0;row<4;row++) { 
-      //get pixel from buffer
-      data1=buffer[g_bufCurr][ofs]&0x0f;
+  for (color=0;color<3;color++) {	           	//Color format GRB
+    ofs = color*32+g_line*4;				//calculate offset, each color need 32bytes 			
+    for (row=0;row<4;row++) {       
+      data1=buffer[g_bufCurr][ofs]&0x0f;                //get pixel from buffer, one byte = two pixels
       data0=buffer[g_bufCurr][ofs]>>4;
       ofs++;
 
@@ -210,7 +209,7 @@ void shift_24_bit() {
       else {
         SHIFT_DATA_0		//send low to the MBI5168 serial input (SDI)       
       }
-      CLK_RISING			//send notice to the MBI5168 that serial data should be processed 
+      CLK_RISING		//send notice to the MBI5168 that serial data should be processed 
 
       if(data1>g_level) {
         SHIFT_DATA_1		//send high to the MBI5168 serial input (SDI)
@@ -218,7 +217,7 @@ void shift_24_bit() {
       else {
         SHIFT_DATA_0		//send low to the MBI5168 serial input (SDI)
       }
-      CLK_RISING			//send notice to the MBI5168 that serial data should be processed
+      CLK_RISING		//send notice to the MBI5168 that serial data should be processed
     }     
   }
 }
