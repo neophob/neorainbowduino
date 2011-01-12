@@ -1,13 +1,7 @@
 package com.neophob.lib.rainbowduino.test;
 
-import java.util.ArrayList;
-import java.util.List;
 
-import com.neophob.lib.rainbowduino.Rainbowduino;
-
-import processing.core.PApplet;
-
-public class Test5bit {
+public class Test5Bit {
 
 	public static void main(String args[]) {
 		byte r=20;		//10100
