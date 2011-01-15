@@ -2,7 +2,7 @@
 #define Rainbow_h
 
 //Address of the device. Note: this must be changed and compiled for all unique Rainbowduinos
-#define I2C_DEVICE_ADDRESS 0x05
+#define I2C_DEVICE_ADDRESS 0x09
 
 //=============================================
 //PORTC maps to Arduino analog pins 0 to 5. Pins 6 & 7 are only accessible on the Arduino Mini
@@ -56,7 +56,7 @@
 #define open_line5      {PORTD=0x20;}
 #define open_line6      {PORTD=0x10;}
 #define open_line7      {PORTD=0x08;}
-#define CLOSE_ALL_LINE  {PORTD&=~0xf8; PORTB&=~0x07;}
+#define CLOSE_ALL_LINES  {PORTD&=~0xf8; PORTB&=~0x07;}
 
 #endif
 

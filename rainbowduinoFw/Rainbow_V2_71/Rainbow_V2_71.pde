@@ -1,6 +1,6 @@
 /*
  * rainbowduino firmware, Copyright (C) 2010-2011 michael vogt <michu@neophob.com>
- *  
+ *   
  * based on 
  * -blinkm firmware by thingM
  * -"daft punk" firmware by Scott C / ThreeFN 
@@ -44,9 +44,13 @@ A variable should be declared volatile whenever its value can be changed by some
  of the code section in which it appears, such as a concurrently executing thread. In the Arduino, the 
  only place that this is likely to occur is in sections of code associated with interrupts, called an 
  interrupt service routine.
- */
+*/
 
-extern unsigned char buffer[2][96];  //two buffers (backbuffer and frontbuffer)
+//if this flag is enabled, the rainbowduino firmware will read the data from the serial port
+#define SERIAL_INSTEAD_OF_I2C
+ 
+#define DATA_LEN 128
+extern unsigned char buffer[2][DATA_LEN];  //two buffers (backbuffer and frontbuffer)
 
 //interrupt variables
 byte g_line,g_level;
@@ -64,9 +68,9 @@ byte g_circle;
 #define END_OF_DATA 0x20
 
 //FPS
-#define FPS 80.0f
+#define FPS 75.0f
 
-#define BRIGHTNESS_LEVELS 16
+#define BRIGHTNESS_LEVELS 32
 #define LED_LINES 8
 #define CIRCLE BRIGHTNESS_LEVELS*LED_LINES
 
@@ -83,6 +87,9 @@ void setup() {
   g_swapNow = 0; 
   g_circle = 0;
 
+#ifdef SERIAL_INSTEAD_OF_I2C
+  initNeoUtils();
+#else
   Wire.begin(I2C_DEVICE_ADDRESS); // join i2c bus as slave
   Wire.onReceive(receiveEvent);   // define the receive function for receiving data from master
   // Keep in mind:
@@ -90,15 +97,20 @@ void setup() {
   // in interrupt routines and other functionality may not work as expected
   // -> if i2c data is receieved our led update timer WILL NOT WORK for a short time, the result
   // are display errors!
+#endif
 
   //redraw screen 80 times/s
-  FlexiTimer2::set(1, 1.0f/(128.f*FPS), displayNextLine);
+  FlexiTimer2::set(1, 1.0f/((float)(CIRCLE*FPS)), displayNextLine);
   FlexiTimer2::start();                            //start interrupt code
 }
 
 //the mainloop - try to fetch data from the i2c bus and copy it into our buffer
 void loop() {
-  if (Wire.available()>97) { 
+
+#ifdef SERIAL_INSTEAD_OF_I2C
+  processSerialCommand();
+#else
+  if (Wire.available()>=DATA_LEN) { 
     
     byte b = Wire.receive();
     if (b != START_OF_DATA) {
@@ -110,7 +122,7 @@ void loop() {
     byte backbuffer = !g_bufCurr;
     b=0;
     //read image data (payload) - an image size is exactly 96 bytes
-    while (b<96) { 
+    while (b<DATA_LEN) { 
       buffer[backbuffer][b++] = Wire.receive();  //recieve whatever is available
     }
 
@@ -120,6 +132,8 @@ void loop() {
   	g_swapNow = 1;
     } 
   }
+#endif
+
 }
 
 
@@ -144,11 +158,12 @@ void receiveEvent(int numBytes) {
 // TODO: try to implement an interlaced update at the same rate. 
 void displayNextLine() { 
   draw_next_line();									// scan the next line in LED matrix level by level. 
-  g_line+=2;	 								        // process all 8 lines of the led matrix 
+/*  g_line+=2;	 								        // process all 8 lines of the led matrix 
   if(g_line==LED_LINES) {
     g_line=1;
-  }
-  if(g_line>LED_LINES) {								// when have scaned all LED's, back to line 0 and add the level 
+  }*/
+  g_line++;
+  if(g_line>=LED_LINES) {								// when have scaned all LED's, back to line 0 and add the level 
     g_line=0; 
     g_level++;										// g_level controls the brightness of a pixel. 
     if (g_level>=BRIGHTNESS_LEVELS) {							// there are 16 levels of brightness (4bit) * 3 colors = 12bit resolution
@@ -170,9 +185,9 @@ void displayNextLine() {
 
 // scan one line, open the scaning row
 void draw_next_line() {
-  DISABLE_OE						//disable MBI5168 output (matrix output blanked)
+  DISABLE_OE						        //disable MBI5168 output (matrix output blanked)
   //enable_row();				                //setup super source driver (trigger the VCC power lane)
-  CLOSE_ALL_LINE					//super source driver, select all outputs off
+  CLOSE_ALL_LINES					        //super source driver, select all outputs off
   open_line(g_line);
 
   LE_HIGH							//enable serial input for the MBI5168
@@ -195,15 +210,57 @@ void enable_row() {
   }
 }
 
+
 // display one line by the color level in buffer
 void shift_24_bit() { 
-  byte color,row,data0,data1,ofs; 
+  byte data0,ofs,row,x; 
 
+  ofs = g_line*16;  //one rgb pixel is saved as 2 byte, *8 pixels
+  x=ofs;
+//GREEN
+  for (row=0; row<8; row++) {    
+    data0=buffer[g_bufCurr][x]>>3;  
+    if(data0>g_level) { 	//is current pixel visible for current level (=brightness)
+      SHIFT_DATA_1		//send high to the MBI5168 serial input (SDI)
+    } else {
+      SHIFT_DATA_0		//send low to the MBI5168 serial input (SDI)       
+    }
+    CLK_RISING		//send notice to the MBI5168 that serial data should be processed 
+    x+=2;  
+  }
+
+  x=ofs+1;              //save offset for blue color
+//RED
+  for (row=0; row<8; row++) {    
+    data0=((buffer[g_bufCurr][ofs]&7)<<2) | (buffer[g_bufCurr][ofs+1]>>6);
+    if(data0>g_level) { 	//is current pixel visible for current level (=brightness)
+      SHIFT_DATA_1		//send high to the MBI5168 serial input (SDI)
+    } else {
+      SHIFT_DATA_0		//send low to the MBI5168 serial input (SDI)       
+    }
+    CLK_RISING		//send notice to the MBI5168 that serial data should be processed 
+    ofs+=2;  
+  }
+  
+//BLUE
+  for (row=0; row<8; row++) {
+    data0=buffer[g_bufCurr][x]&0x1f;
+    if(data0>g_level) { 	//is current pixel visible for current level (=brightness)
+      SHIFT_DATA_1		//send high to the MBI5168 serial input (SDI)
+    } else {
+      SHIFT_DATA_0		//send low to the MBI5168 serial input (SDI)       
+    }
+    CLK_RISING		//send notice to the MBI5168 that serial data should be processed 
+    x+=2;  
+  }  
+  
+}
+/*
   for (color=0;color<3;color++) {	           	//Color format GRB
     ofs = color*32+g_line*4;				//calculate offset, each color need 32bytes
     			
     for (row=0;row<4;row++) {    
-      
+
       data1=buffer[g_bufCurr][ofs]&0x0f;                //get pixel from buffer, one byte = two pixels
       data0=buffer[g_bufCurr][ofs]>>4;
       ofs++;
@@ -225,7 +282,7 @@ void shift_24_bit() {
       CLK_RISING		//send notice to the MBI5168 that serial data should be processed
     }     
   }
-}
+}*/
 
 void open_line(unsigned char line) {    // open the scaning line 
   switch(line) {
