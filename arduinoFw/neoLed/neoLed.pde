@@ -1,5 +1,5 @@
 /*
- * arduino serial-i2c-gateway, Copyright (C) 2010 michael vogt <michu@neophob.com>
+ * arduino serial-i2c-gateway, Copyright (C) 2010-2011 michael vogt <michu@neophob.com>
  *  
  * based on 
  * -blinkm firmware by thingM
@@ -61,8 +61,15 @@ extern "C" {
 #define START_I2C_SCAN 1
 #define END_I2C_SCAN 101
 
+//frame size for specific color resolution
+#define COLOR_4BIT_FRAME_SIZE 96
+#define COLOR_5BIT_FRAME_SIZE 128
+
+#define SERIAL_HEADER_SIZE 5
+
 //this should match RX_BUFFER_SIZE from HardwareSerial.cpp
-byte serInStr[128]; 	 				 // array that will hold the serial input string
+#define SERIAL_RX_BUFFER_SIZE 128
+byte serInStr[SERIAL_RX_BUFFER_SIZE]; 	 				 // array that will hold the serial input string
 
 //counter for 2000 frames
 //http://www.ftdichip.com/Support/Documents/AppNotes/AN232B-04_DataLatencyFlow.pdf
@@ -99,7 +106,7 @@ static void sendAck() {
 //contains red led's which describe its i2c addr
 byte send_initial_image(byte i2caddr) {
   //clear whole buffer
-  memset(serInStr, CLEARCOL, 128);
+  memset(serInStr, CLEARCOL, COLOR_4BIT_FRAME_SIZE);
 
   //draw i2c addr as led pixels
   float tail = i2caddr/2.0f;
@@ -115,7 +122,7 @@ byte send_initial_image(byte i2caddr) {
     serInStr[ofs++]=243;
   }
   
-  return BlinkM_sendBuffer(i2caddr, serInStr);
+  return BlinkM_sendBuffer(i2caddr, serInStr, COLOR_4BIT_FRAME_SIZE);
 }
 
 // ripped from http://todbot.com/arduino/sketches/I2CScanner/I2CScanner.pde
@@ -169,7 +176,7 @@ void loop() {
   if (readCommand(serInStr) == 0) {
     //no valid data found
     //sleep for 250us
-    delayMicroseconds(250);
+    delayMicroseconds(500);
     return;
   }
   
@@ -185,14 +192,15 @@ void loop() {
   byte* cmd    = serInStr+5;
 
   switch (type) {
-    case CMD_SENDFRAME:
-    	//the size of an image must be exactly 96 bytes
-        if (sendlen!=96) {
-          g_errorCounter=100;
+   case CMD_SENDFRAME:
+    	//the size of an image must be exactly 96 bytes (12bit) or 128 bytes (15bit)
+        if (sendlen==COLOR_4BIT_FRAME_SIZE || sendlen == COLOR_5BIT_FRAME_SIZE) {
+          g_errorCounter = BlinkM_sendBuffer(addr, cmd, sendlen);    
         } else {
-          g_errorCounter = BlinkM_sendBuffer(addr, cmd);    
+	  g_errorCounter=100;
         }
         break;
+
     case CMD_PING:
         //just send the ack!
         break;
@@ -208,7 +216,7 @@ void loop() {
         g_errorCounter=130; 
         break;
   }
-        
+
   //send ack to library - command processed
   sendAck();
     
@@ -217,10 +225,10 @@ void loop() {
 
 
 //send data via I2C to a client
-static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
+static byte BlinkM_sendBuffer(byte addr, byte* cmd, byte sendlen) {
     Wire.beginTransmission(addr);
     Wire.send(START_OF_DATA);
-    Wire.send(cmd, 96);
+    Wire.send(cmd, sendlen);
     Wire.send(END_OF_DATA);
     return Wire.endTransmission();
 }
@@ -238,7 +246,7 @@ static byte BlinkM_sendBuffer(byte addr, byte* cmd) {
 		cmdfull[5] = 0x02;
 		cmdfull[6] = END_OF_DATA (marker);
 */
-#define HEADER_SIZE 5
+
 byte readCommand(byte *str) {
   byte b,i,sendlen;
 
@@ -259,14 +267,14 @@ byte readCommand(byte *str) {
 
 //read header  
   i = SERIAL_WAIT_TIME_IN_MS;
-  while (Serial.available() < HEADER_SIZE-1) {   // wait for the rest
+  while (Serial.available() < SERIAL_HEADER_SIZE-1) {   // wait for the rest
     delay(1); 
     if (i-- == 0) {
       g_errorCounter=102;
       return 0;        // get out if takes too long
     }
   }
-  for (i=1; i<HEADER_SIZE; i++) {
+  for (i=1; i<SERIAL_HEADER_SIZE; i++) {
     str[i] = Serial.read();       // fill it up
   }
   
@@ -293,12 +301,12 @@ byte readCommand(byte *str) {
     }
   }
 
-  for (i=HEADER_SIZE; i<HEADER_SIZE+sendlen+1; i++) {
+  for (i=SERIAL_HEADER_SIZE; i<SERIAL_HEADER_SIZE+sendlen+1; i++) {
     str[i] = Serial.read();       // fill it up
   }
 
   //check if data is correct, 0x20 = END_OF_DATA
-  if (str[HEADER_SIZE+sendlen] != END_OF_DATA) {
+  if (str[SERIAL_HEADER_SIZE+sendlen] != END_OF_DATA) {
     g_errorCounter=106;
     return 0;
   }
