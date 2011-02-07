@@ -63,6 +63,41 @@ public class RainbowduinoHelper {
 
 
 	/*
+[code:1]
+.db 0, 0, 1, 1, 1, 1, 1, 2
+.db 2, 2, 2, 3, 3, 3, 4, 4
+.db 4, 5, 5, 5, 6, 6, 7, 7
+.db 8, 8, 9, 9, 10, 10, 11, 11
+.db 12, 12, 13, 13, 14, 14, 15, 15
+.db 16, 16, 17, 17, 18, 18, 19, 19 
+.db 20, 20, 21, 21, 22, 22, 23, 23 
+.db 24, 24, 25, 25, 26, 27, 28, 29
+.db 30, 30, 31, 32, 33, 34, 35, 36
+.db 36, 37, 38, 39, 40, 41, 42, 43
+.db 43, 44, 45, 46, 47, 48, 49, 50
+.db 51, 52, 52, 53, 54, 55, 56, 57
+.db 58, 59, 60, 61, 62, 63, 64, 65
+.db 66, 67, 68, 69, 70, 71, 72, 73 
+.db 74, 75, 76, 77, 78, 79, 80, 81
+.db 82, 83, 84, 85, 86, 88, 89, 90
+.db 91, 92, 93, 94, 95, 96, 97, 98
+.db 99, 100, 102, 103, 104, 105, 106, 107
+.db 108, 109, 110, 112, 113, 114, 115, 116
+.db 117, 119, 120, 121, 122, 123, 124, 126
+.db 127, 128, 129, 130, 132, 133, 134, 135
+.db 136, 138, 139, 140, 141, 142, 144, 145
+.db 146, 147, 149, 150, 151, 152, 154, 155
+.db 156, 158, 159, 160, 161, 162, 164, 165
+.db 167, 168, 169, 171, 172, 173, 174, 176
+.db 177, 178, 180, 181, 182, 184, 185, 187
+.db 188, 189, 191, 192, 193, 195, 196, 197
+.db 199, 200, 202, 203, 204, 206, 207, 208
+.db 210, 211, 213, 214, 216, 217, 218, 220
+.db 221, 223, 224, 226, 227, 228, 230, 231
+.db 233, 234, 236, 237, 239, 240, 242, 243
+.db 245, 246, 248, 249, 251, 252, 254, 255
+[/code:1]
+
 
 {
   0,  0,    0,   0,   0,   0,   0,   0, 
@@ -139,16 +174,15 @@ public class RainbowduinoHelper {
 	 * @return rainbowduino compatible format as byte[3*8*4] 
 	 */
 	public static byte[] convertRgbToRainbowduino(int[] data) throws IllegalArgumentException {
-		if (data.length!=64) {
+		if (data.length!=BUFFERSIZE) {
 			throw new IllegalArgumentException("data lenght must be 64 bytes!");
 		}
-		byte[] converted = new byte[3*8*4];
+
 		int[] r = new int[BUFFERSIZE];
 		int[] g = new int[BUFFERSIZE];
 		int[] b = new int[BUFFERSIZE];
 		int tmp;
 		int ofs=0;
-		int dst;
 
 		//step#1: split up r/g/b and apply gammatab
 		for (int n=0; n<BUFFERSIZE; n++) {
@@ -161,12 +195,44 @@ public class RainbowduinoHelper {
 			b[ofs] = GAMMA_TAB[(int) ( tmp      & 255)];	 //b		
 			ofs++;
 		}
-		//step#2: convert 8bit to 4bit
-		//Each color byte, aka two pixels side by side, gives you 4 bit brightness control, 
-		//first 4 bits for the left pixel and the last 4 for the right pixel. 
-		//-> this means a value from 0 (min) to 15 (max) is possible for each pixel 		
-		ofs=0;
-		dst=0;
+
+		return convertTo12Bit(r,g,b);
+	}
+
+	
+	public static byte[] convertRgbTo15bit(int[] data) throws IllegalArgumentException {
+		if (data.length!=BUFFERSIZE) {
+			throw new IllegalArgumentException("data lenght must be 64 bytes!");
+		}
+
+		int[] r = new int[BUFFERSIZE];
+		int[] g = new int[BUFFERSIZE];
+		int[] b = new int[BUFFERSIZE];
+		int tmp;
+		int ofs=0;
+
+		//step#1: split up r/g/b 
+		for (int n=0; n<BUFFERSIZE; n++) {
+			//one int contains the rgb color
+			tmp = data[ofs];
+				
+			r[ofs] = (int) ((tmp>>16) & 255);
+			g[ofs] = (int) ((tmp>>8)  & 255);
+			b[ofs] = (int) ( tmp      & 255);		
+			ofs++;
+		}
+
+		return convertTo15Bit(r,g,b);
+	}
+
+	//step#2: convert 8bit to 4bit
+	//Each color byte, aka two pixels side by side, gives you 4 bit brightness control, 
+	//first 4 bits for the left pixel and the last 4 for the right pixel. 
+	//-> this means a value from 0 (min) to 15 (max) is possible for each pixel
+	//output format: RRRRRRRR (32x) GGGGGGGG (32x) BBBBBBBB (32x)
+	private static byte[] convertTo12Bit(int[] r, int[] g, int[] b) {
+		int dst=0, ofs=0;
+		byte[] converted = new byte[3*8*4];
 		for (int i=0; i<32;i++) {
 			//240 = 11110000 - delete the lower 4 bits, then add the (shr-ed) 2nd color
 			converted[00+dst] = (byte)(((r[ofs]&240) + (r[ofs+1]>>4))& 255); //r
@@ -175,11 +241,33 @@ public class RainbowduinoHelper {
 
 			ofs+=2;
 			dst++;
-		}
-
+		}		
 		return converted;
 	}
-
+	
+	/**
+	 * 
+	 * @param r
+	 * @param g
+	 * @param b
+	 * @return
+	 */
+	private static byte[] convertTo15Bit(int[] r, int[] g, int[] b) {
+		int dst=0;
+		byte[] converted = new byte[128];
+		//convert to 24bpp to 15(16)bpp 
+		//output format: RRRRRGGG GGGBBBBB (64x)
+		for (int i=0; i<64;i++) {
+			byte b1 = (byte)(r[i]>>3);
+			byte b2 = (byte)(g[i]>>3);
+			byte b3 = (byte)(b[i]>>3);
+			//TODO
+			converted[dst++] = (byte)((b1<<3) | (b2>>2));
+			converted[dst++] = (byte)(((b2&3)<<5) | b3);
+		}
+		
+		return converted;
+	}
 
 	/**
 	 * resize an pixel array using 
